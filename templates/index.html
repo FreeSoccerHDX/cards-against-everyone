@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cards Against Everyone</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <!-- Username Screen -->
+    <div id="username-screen" class="screen active">
+        <div class="container">
+            <h1>Cards Against Everyone</h1>
+            <div class="username-form">
+                <input type="text" id="username-input" placeholder="Dein Name" maxlength="20" autofocus>
+                <button id="username-submit">Los geht's</button>
+                <div id="username-error" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen">
+        <div class="container">
+            <div class="header">
+                <h1>Lobby</h1>
+                <div class="user-info">
+                    <span>Willkommen, <strong id="current-username"></strong>!</span>
+                </div>
+            </div>
+
+            <div class="lobby-actions">
+                <button id="create-game-btn" class="btn-primary">Neues Spiel erstellen</button>
+                <button id="refresh-games-btn" class="btn-secondary">Aktualisieren</button>
+            </div>
+
+            <div class="games-list">
+                <h2>Öffentliche Spiele</h2>
+                <div id="public-games">
+                    <p class="empty-message">Keine öffentlichen Spiele verfügbar</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Game Modal -->
+    <div id="create-game-modal" class="modal">
+        <div class="modal-content">
+            <h2>Neues Spiel erstellen</h2>
+            <div class="form-group">
+                <label>Spielname</label>
+                <input type="text" id="game-name-input" placeholder="Mein Spiel" maxlength="30">
+            </div>
+            <div class="form-group checkbox">
+                <input type="checkbox" id="game-public-checkbox" checked>
+                <label for="game-public-checkbox">Öffentlich sichtbar</label>
+            </div>
+            <div class="form-group">
+                <label>Passwort (optional)</label>
+                <input type="password" id="game-password-input" placeholder="Passwort">
+            </div>
+            <div class="modal-actions">
+                <button id="create-game-confirm" class="btn-primary">Erstellen</button>
+                <button id="create-game-cancel" class="btn-secondary">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Game Modal -->
+    <div id="join-game-modal" class="modal">
+        <div class="modal-content">
+            <h2>Spiel beitreten</h2>
+            <p id="join-game-name"></p>
+            <div class="form-group" id="join-password-group" style="display: none;">
+                <label>Passwort</label>
+                <input type="password" id="join-password-input" placeholder="Passwort">
+            </div>
+            <div class="modal-actions">
+                <button id="join-game-confirm" class="btn-primary">Beitreten</button>
+                <button id="join-game-cancel" class="btn-secondary">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Room Screen -->
+    <div id="game-screen" class="screen">
+        <div class="container">
+            <div class="header">
+                <h1 id="game-title">Spiel</h1>
+                <button id="leave-game-btn" class="btn-danger">Zurück zur Lobby</button>
+            </div>
+
+            <div class="game-content">
+                <!-- Linke Seite: Spieler -->
+                <div class="players-panel">
+                    <h2>Spieler</h2>
+                    <div id="players-list"></div>
+                    <div class="game-link">
+                        <label>Beitrittslink:</label>
+                        <input type="text" id="join-link" readonly>
+                        <button id="copy-link-btn" class="btn-secondary">Kopieren</button>
+                    </div>
+                </div>
+
+                <!-- Rechte Seite: Einstellungen / Spiel -->
+                <div class="main-panel">
+                    <div id="settings-panel">
+                        <h2>Einstellungen</h2>
+                        <div class="settings-form">
+                            <div class="form-group">
+                                <label>Spielname</label>
+                                <input type="text" id="settings-name" class="settings-input" maxlength="30">
+                            </div>
+                            <div class="form-group checkbox">
+                                <input type="checkbox" id="settings-public" class="settings-input">
+                                <label for="settings-public">Öffentlich sichtbar</label>
+                            </div>
+                            <div class="form-group">
+                                <label>Passwort</label>
+                                <input type="password" id="settings-password" class="settings-input" placeholder="Optional">
+                            </div>
+                            <div class="form-group">
+                                <label>Maximale Karten pro Spieler</label>
+                                <input type="number" id="settings-max-cards" class="settings-input" min="5" max="15" value="10">
+                            </div>
+                            <div class="form-group">
+                                <label>Punkte zum Gewinnen</label>
+                                <input type="number" id="settings-win-score" class="settings-input" min="3" max="20" value="7">
+                            </div>
+                            <p class="info-text" id="creator-info" style="display: none;">Nur der Ersteller kann Einstellungen ändern</p>
+                        </div>
+
+                        <div class="game-actions">
+                            <button id="start-game-btn" class="btn-primary btn-large" style="display: none;">Spiel starten</button>
+                        </div>
+                    </div>
+
+                    <div id="game-play-panel" style="display: none;">
+                        <h2>Spiel läuft...</h2>
+                        <p>Das Spiel wurde gestartet!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
