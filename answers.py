@@ -2386,7 +2386,6 @@ CARDS_ANSWERS = [
         "Gauleiter Gauland",
         "Ausländer mit Benzin verbrennen",
         "Warum hältst du nicht einfach dein Maul, du Arschloch?",
-        "卐",
         "Corona Extra",
         "diese fette Frau im Supermarkt",
         "eine gesunde Mischung aus Napalm und Arsen",

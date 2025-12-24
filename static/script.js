@@ -16,6 +16,7 @@ const usernameSubmit = document.getElementById('username-submit');
 const usernameError = document.getElementById('username-error');
 
 const currentUsernameDisplay = document.getElementById('current-username');
+const logoutBtn = document.getElementById('logout-btn');
 const createGameBtn = document.getElementById('create-game-btn');
 const refreshGamesBtn = document.getElementById('refresh-games-btn');
 const publicGamesDiv = document.getElementById('public-games');
@@ -45,6 +46,8 @@ const settingsPublic = document.getElementById('settings-public');
 const settingsPassword = document.getElementById('settings-password');
 const settingsMaxCards = document.getElementById('settings-max-cards');
 const settingsWinScore = document.getElementById('settings-win-score');
+const settingsAnswerTime = document.getElementById('settings-answer-time');
+const settingsRoundDelay = document.getElementById('settings-round-delay');
 const creatorInfo = document.getElementById('creator-info');
 const startGameBtn = document.getElementById('start-game-btn');
 
@@ -163,6 +166,32 @@ socket.on('reconnected', (data) => {
     } else {
         showScreen(lobbyScreen);
         socket.emit('get_public_games');
+    }
+});
+
+// Logout
+logoutBtn.addEventListener('click', () => {
+    if (confirm('Möchtest du dich wirklich abmelden?')) {
+        // Lösche gespeicherten Username
+        clearSavedUsername();
+        
+        // Verlasse ggf. Spiel
+        if (currentGameId) {
+            socket.emit('leave_game');
+        }
+        
+        // Reset Zustand
+        currentUsername = null;
+        currentGameId = null;
+        currentGameCreator = null;
+        isCreator = false;
+        
+        // Gehe zu Username-Screen
+        showScreen(usernameScreen);
+        usernameInput.value = '';
+        usernameError.textContent = '';
+        
+        showNotification('Abgemeldet', 'info');
     }
 });
 
@@ -364,6 +393,8 @@ function updateGameRoom(game) {
     settingsPassword.value = game.password || '';
     settingsMaxCards.value = game.settings.max_cards;
     settingsWinScore.value = game.settings.win_score;
+    settingsAnswerTime.value = game.settings.answer_time || 60;
+    settingsRoundDelay.value = game.settings.round_delay || 5;
     
     // Disable settings for non-creators
     const settingsInputs = document.querySelectorAll('.settings-input');
@@ -428,7 +459,9 @@ function autoSaveSettings() {
             password: settingsPassword.value.trim(),
             settings: {
                 max_cards: parseInt(settingsMaxCards.value),
-                win_score: parseInt(settingsWinScore.value)
+                win_score: parseInt(settingsWinScore.value),
+                answer_time: parseInt(settingsAnswerTime.value),
+                round_delay: parseInt(settingsRoundDelay.value)
             }
         };
         socket.emit('update_settings', data);
@@ -440,6 +473,8 @@ settingsPublic.addEventListener('change', autoSaveSettings);
 settingsPassword.addEventListener('input', autoSaveSettings);
 settingsMaxCards.addEventListener('input', autoSaveSettings);
 settingsWinScore.addEventListener('input', autoSaveSettings);
+settingsAnswerTime.addEventListener('input', autoSaveSettings);
+settingsRoundDelay.addEventListener('input', autoSaveSettings);
 
 // Start Game
 startGameBtn.addEventListener('click', () => {
@@ -449,7 +484,358 @@ startGameBtn.addEventListener('click', () => {
 socket.on('game_started', (data) => {
     settingsPanel.style.display = 'none';
     gamePlayPanel.style.display = 'block';
+    gameScreen.classList.add('playing');
     showNotification('Spiel gestartet!', 'success');
+});
+
+// Game Play Variables
+let currentHand = [];
+let selectedCards = [];
+let currentQuestion = null;
+let isCzar = false;
+let roundTimer = null;
+let timerInterval = null;
+
+// Game Play Elements
+const czarInfo = document.getElementById('czar-info');
+const czarText = document.getElementById('czar-text');
+const questionText = document.getElementById('question-text');
+const timerDisplay = document.getElementById('timer-display');
+const scoresPanel = document.getElementById('scores-panel');
+
+const answerPhase = document.getElementById('answer-phase');
+const cardsNeeded = document.getElementById('cards-needed');
+const selectionCount = document.getElementById('selection-count');
+const selectionMax = document.getElementById('selection-max');
+const playerHand = document.getElementById('player-hand');
+const submitAnswersBtn = document.getElementById('submit-answers-btn');
+
+const czarWaitingPhase = document.getElementById('czar-waiting-phase');
+const submissionStatus = document.getElementById('submission-status');
+
+const votingPhase = document.getElementById('voting-phase');
+const answerOptions = document.getElementById('answer-options');
+
+const waitingVotePhase = document.getElementById('waiting-vote-phase');
+const resultPhase = document.getElementById('result-phase');
+const roundWinner = document.getElementById('round-winner');
+
+const gameEndPhase = document.getElementById('game-end-phase');
+const gameWinner = document.getElementById('game-winner');
+const finalScores = document.getElementById('final-scores');
+const backToLobbyBtn = document.getElementById('back-to-lobby-btn');
+
+// Round Started
+socket.on('round_started', (data) => {
+    currentQuestion = data.question;
+    currentHand = data.hand;
+    isCzar = data.is_czar;
+    selectedCards = [];
+    
+    // Update UI
+    czarText.textContent = data.is_czar ? 
+        'Du bist der Card Czar dieser Runde!' : 
+        `Card Czar: ${data.czar}`;
+    
+    questionText.innerHTML = data.question.card_text.replace(/_/g, '<span class="blank">____</span>');
+    
+    updateScores(data.scores);
+    
+    // Hide all phases ZUERST
+    hideAllPhases();
+    
+    // Starte Timer basierend auf Spieleinstellungen (für ALLE sichtbar)
+    const answerTime = data.answer_time || 60;
+    timerDisplay.style.display = 'block';
+    startRoundTimer(answerTime);
+    
+    if (isCzar) {
+        // Card Czar wartet - Timer sichtbar
+        czarWaitingPhase.style.display = 'block';
+        submissionStatus.textContent = '0 von ' + (Object.keys(data.scores).length - 1) + ' Spielern haben abgegeben';
+    } else {
+        // Spieler wählt Karten - Timer sichtbar
+        answerPhase.style.display = 'block';
+        cardsNeeded.textContent = data.question.num_blanks;
+        selectionMax.textContent = data.question.num_blanks;
+        displayHand();
+    }
+});
+
+let timerEndTime = null;
+
+function startRoundTimer(seconds) {
+    console.log('Starte Timer für', seconds, 'Sekunden');
+    if (timerInterval) clearInterval(timerInterval);
+    
+    // Speichere Endzeitpunkt (wird vom Server synchronisiert)
+    timerEndTime = Date.now() + (seconds * 1000);
+    
+    const updateTimer = () => {
+        if (!timerEndTime) {
+            clearInterval(timerInterval);
+            return;
+        }
+        
+        const now = Date.now();
+        const timeLeft = Math.max(0, Math.ceil((timerEndTime - now) / 1000));
+        
+        timerDisplay.textContent = `⏱️ ${timeLeft}s`;
+        
+        if (timeLeft <= 10) {
+            timerDisplay.style.color = '#f44336';
+        } else {
+            timerDisplay.style.color = '';
+        }
+        
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerEndTime = null;
+        }
+    };
+    
+    // Sofort aktualisieren
+    updateTimer();
+    
+    // Alle 200ms prüfen
+    timerInterval = setInterval(updateTimer, 200);
+}
+
+// Timer-Sync vom Server
+socket.on('timer_sync', (data) => {
+    // Synchronisiere lokalen Timer mit Server-Zeit
+    if (data.time_left !== undefined) {
+        timerEndTime = Date.now() + (data.time_left * 1000);
+    }
+});
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function hideAllPhases() {
+    // Stop countdowns
+    if (nextRoundCountdown) {
+        clearInterval(nextRoundCountdown);
+        nextRoundCountdown = null;
+    }
+    
+    answerPhase.style.display = 'none';
+    czarWaitingPhase.style.display = 'none';
+    votingPhase.style.display = 'none';
+    waitingVotePhase.style.display = 'none';
+    resultPhase.style.display = 'none';
+    gameEndPhase.style.display = 'none';
+}
+
+function updateScores(scores) {
+    scoresPanel.innerHTML = '';
+    const maxScore = Math.max(...Object.values(scores));
+    
+    for (const [player, score] of Object.entries(scores)) {
+        const item = document.createElement('div');
+        item.className = 'score-item';
+        if (score === maxScore && score > 0) {
+            item.classList.add('leading');
+        }
+        item.innerHTML = `
+            <span class="score-name">${escapeHtml(player)}</span>
+            <span class="score-value">${score}</span>
+        `;
+        scoresPanel.appendChild(item);
+    }
+}
+
+function displayHand() {
+    playerHand.innerHTML = '';
+    currentHand.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'answer-card';
+        cardEl.textContent = card;
+        cardEl.dataset.index = index;
+        
+        cardEl.addEventListener('click', () => toggleCardSelection(index, cardEl));
+        
+        playerHand.appendChild(cardEl);
+    });
+    
+    updateSelectionUI();
+}
+
+function toggleCardSelection(index, cardEl) {
+    const selectedIndex = selectedCards.indexOf(index);
+    
+    if (selectedIndex > -1) {
+        // Deselect
+        selectedCards.splice(selectedIndex, 1);
+        cardEl.classList.remove('selected');
+        cardEl.querySelector('.selection-number')?.remove();
+    } else {
+        // Select
+        if (selectedCards.length < currentQuestion.num_blanks) {
+            selectedCards.push(index);
+            cardEl.classList.add('selected');
+            
+            const numberBadge = document.createElement('div');
+            numberBadge.className = 'selection-number';
+            numberBadge.textContent = selectedCards.length;
+            cardEl.appendChild(numberBadge);
+        }
+    }
+    
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    stopTimer();
+    selectionCount.textContent = selectedCards.length;
+    submitAnswersBtn.disabled = selectedCards.length !== currentQuestion.num_blanks;
+    
+    // Update numbers on selected cards
+    document.querySelectorAll('.answer-card.selected').forEach(card => {
+        const index = parseInt(card.dataset.index);
+        const position = selectedCards.indexOf(index) + 1;
+        const badge = card.querySelector('.selection-number');
+        if (badge) {
+            badge.textContent = position;
+        }
+    });
+}
+
+submitAnswersBtn.addEventListener('click', () => {
+    socket.emit('submit_answers', { answer_indices: selectedCards });
+    answerPhase.style.display = 'none';
+    waitingVotePhase.style.display = 'block';
+});
+
+// Player submitted
+socket.on('player_submitted', (data) => {
+    if (isCzar) {
+        submissionStatus.textContent = `${data.submitted_count} von ${data.total_players} Spielern haben abgegeben`;
+    }
+    showNotification(`${data.username} hat abgegeben`, 'info');
+});
+
+// Voting Phase
+socket.on('voting_phase', (data) => {
+    hideAllPhases();
+    
+    if (isCzar) {
+        votingPhase.style.display = 'block';
+        displayAnswerOptions(data.answer_options);
+    } else {
+        waitingVotePhase.style.display = 'block';
+    }
+});
+
+function displayAnswerOptions(options) {
+    answerOptions.innerHTML = '';
+    
+    options.forEach((option, index) => {
+        const optionEl = document.createElement('div');
+        optionEl.className = 'answer-option';
+        
+        const answerText = currentQuestion.card_text;
+        let filledText = answerText;
+        
+        option.answers.forEach((answer, i) => {
+            filledText = filledText.replace('_', `<strong>${escapeHtml(answer)}</strong>`);
+        });
+        
+        optionEl.innerHTML = `<div class="answer-text">${filledText}</div>`;
+        optionEl.addEventListener('click', () => selectWinner(index, optionEl));
+        
+        answerOptions.appendChild(optionEl);
+    });
+}
+
+function selectWinner(index, optionEl) {
+    document.querySelectorAll('.answer-option').forEach(el => el.classList.remove('selected-winner'));
+    optionEl.classList.add('selected-winner');
+    
+    socket.emit('vote_winner', { winner_index: index });
+}
+
+// Round Result
+let nextRoundCountdown = null;
+
+socket.on('round_result', (data) => {
+    stopTimer();
+    hideAllPhases();
+    resultPhase.style.display = 'block';
+    
+    // Zeige Frage mit eingesetzten Gewinnerantworten
+    const resultQuestion = document.getElementById('result-question');
+    const resultAnswers = document.getElementById('result-answers');
+    
+    if (resultQuestion && data.question && data.winner_answers) {
+        let questionText = data.question.card_text;
+        // Ersetze jedes "_____" durch die entsprechende Antwort
+        data.winner_answers.forEach(answer => {
+            questionText = questionText.replace('_____', `<strong class="filled-answer">${answer}</strong>`);
+        });
+        resultQuestion.innerHTML = questionText;
+    }
+    
+    // Verstecke separaten Antworten-Bereich (Antworten sind jetzt in der Frage)
+    if (resultAnswers) {
+        resultAnswers.style.display = 'none';
+    }
+    
+    roundWinner.textContent = data.winner;
+    updateScores(data.scores);
+    
+    showNotification(`${data.winner} gewinnt diese Runde!`, 'success');
+    
+    // Starte Countdown
+    const countdownEl = document.getElementById('countdown-timer');
+    let timeLeft = data.next_round_in || 5;
+    countdownEl.textContent = timeLeft;
+    
+    if (nextRoundCountdown) {
+        clearInterval(nextRoundCountdown);
+    }
+    
+    nextRoundCountdown = setInterval(() => {
+        timeLeft--;
+        countdownEl.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(nextRoundCountdown);
+        }
+    }, 1000);
+});
+
+// Game Ended
+socket.on('game_ended', (data) => {
+    hideAllPhases();
+    gameEndPhase.style.display = 'block';
+    gameWinner.textContent = data.winner;
+    
+    finalScores.innerHTML = '';
+    const sortedScores = Object.entries(data.final_scores).sort((a, b) => b[1] - a[1]);
+    
+    sortedScores.forEach(([player, score], index) => {
+        const item = document.createElement('div');
+        item.className = 'final-score-item';
+        if (index === 0) item.classList.add('winner');
+        item.innerHTML = `
+            <span>${index + 1}. ${escapeHtml(player)}</span>
+            <span>${score} Punkte</span>
+        `;
+        finalScores.appendChild(item);
+    });
+});
+
+backToLobbyBtn.addEventListener('click', () => {
+    gameScreen.classList.remove('playing');
+    settingsPanel.style.display = 'block';
+    gamePlayPanel.style.display = 'none';
+    hideAllPhases();
 });
 
 // Error handling

@@ -2,7 +2,11 @@ from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import uuid
 import time
+import random
 from threading import Timer
+import eventlet
+from questions import CARDS_QUESTIONS
+from answers import CARDS_ANSWERS
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cards-against-everyone-secret-key'
@@ -156,10 +160,13 @@ def handle_create_game(data):
         'is_public': is_public,
         'password': password,
         'settings': {
-            'max_cards': 10,
-            'win_score': 7
+            'max_cards': 7,
+            'win_score': 10,
+            'answer_time': 60,  # Sekunden für automatische Abgabe
+            'round_delay': 5  # Sekunden zwischen Runden
         },
-        'started': False
+        'started': False,
+        'game_state': None  # Wird gesetzt wenn Spiel startet
     }
     
     users[username]['game_id'] = game_id
@@ -359,10 +366,356 @@ def handle_start_game():
     
     game['started'] = True
     
+    # Initialisiere Spielzustand
+    init_game_state(game)
+    
     # Informiere alle Spieler
     emit('game_started', {'game': game}, room=game_id)
     
     # Aktualisiere Lobby
+    socketio.emit('lobby_update', {'games': get_public_games()})
+    
+    # Starte erste Runde
+    start_new_round(game_id)
+
+def init_game_state(game):
+    """Initialisiert den Spielzustand"""
+    # Mische Karten
+    question_deck = CARDS_QUESTIONS.copy()
+    answer_deck = CARDS_ANSWERS.copy()
+    random.shuffle(question_deck)
+    random.shuffle(answer_deck)
+    
+    # Spielerzustand
+    player_hands = {}
+    player_scores = {}
+    
+    for player in game['players']:
+        player_hands[player] = []
+        player_scores[player] = 0
+        # Gib jedem Spieler die Anzahl Karten
+        for _ in range(game['settings']['max_cards']):
+            if answer_deck:
+                player_hands[player].append(answer_deck.pop())
+    
+    game['game_state'] = {
+        'question_deck': question_deck,
+        'answer_deck': answer_deck,
+        'player_hands': player_hands,
+        'player_scores': player_scores,
+        'current_czar_index': 0,
+        'current_question': None,
+        'submitted_answers': {},  # {username: [answer_indices]}
+        'round_phase': 'waiting',  # waiting, answering, voting, results
+        'round_timer': None,
+        'round_start_time': None,  # Server-Zeitstempel für Timer-Sync
+        'timer_sync_task': None  # Background task für Timer-Updates
+    }
+
+def start_new_round(game_id):
+    """Startet eine neue Runde"""
+    if game_id not in games:
+        return
+    
+    game = games[game_id]
+    state = game['game_state']
+    
+    # Wähle Card Czar (rotiert)
+    players = game['players']
+    czar = players[state['current_czar_index']]
+    
+    # Ziehe Frage
+    if not state['question_deck']:
+        # Deck ist leer, mische neu
+        state['question_deck'] = CARDS_QUESTIONS.copy()
+        random.shuffle(state['question_deck'])
+    
+    current_question = state['question_deck'].pop()
+    state['current_question'] = current_question
+    state['submitted_answers'] = {}
+    state['round_phase'] = 'answering'
+    
+    # Sende Rundeninformationen an alle Spieler
+    for player in players:
+        player_data = {
+            'czar': czar,
+            'question': current_question,
+            'hand': state['player_hands'].get(player, []),
+            'scores': state['player_scores'],
+            'is_czar': player == czar,
+            'answer_time': game['settings'].get('answer_time', 60)
+        }
+        
+        # Finde SID des Spielers
+        for username, user_data in users.items():
+            if username == player and user_data.get('game_id') == game_id:
+                socketio.emit('round_started', player_data, room=user_data['sid'])
+                break
+    
+    # Starte Timer für automatische Abgabe
+    answer_time = game['settings'].get('answer_time', 60)
+    if state['round_timer']:
+        state['round_timer'].cancel()
+    
+    # Speichere Startzeitpunkt für Timer-Sync
+    state['round_start_time'] = time.time()
+    
+    state['round_timer'] = Timer(answer_time, auto_submit_answers, args=[game_id])
+    state['round_timer'].start()
+    
+    # Starte Background-Task für regelmäßige Timer-Updates
+    if state['timer_sync_task']:
+        try:
+            state['timer_sync_task'].kill()
+        except:
+            pass
+    
+    def sync_timer():
+        while game_id in games:
+            game = games[game_id]
+            state = game['game_state']
+            
+            if state['round_phase'] != 'answering' or not state['round_start_time']:
+                break
+            
+            elapsed = time.time() - state['round_start_time']
+            time_left = max(0, answer_time - int(elapsed))
+            
+            socketio.emit('timer_sync', {'time_left': time_left}, room=game_id)
+            
+            if time_left <= 0:
+                break
+            
+            eventlet.sleep(2)  # Update alle 2 Sekunden
+    
+    state['timer_sync_task'] = socketio.start_background_task(sync_timer)
+
+def auto_submit_answers(game_id):
+    """Automatische Abgabe nach Zeitlimit"""
+    if game_id not in games:
+        return
+    
+    game = games[game_id]
+    state = game['game_state']
+    
+    if state['round_phase'] != 'answering':
+        return
+    
+    # Spieler die noch nicht abgegeben haben
+    czar = game['players'][state['current_czar_index']]
+    for player in game['players']:
+        if player != czar and player not in state['submitted_answers']:
+            # Wähle zufällige Karten
+            hand = state['player_hands'][player]
+            num_blanks = state['current_question']['num_blanks']
+            if len(hand) >= num_blanks:
+                state['submitted_answers'][player] = list(range(num_blanks))
+    
+    # Gehe zur Voting-Phase
+    start_voting_phase(game_id)
+
+@socketio.on('submit_answers')
+def handle_submit_answers(data):
+    """Spieler gibt Antworten ab"""
+    username = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            username = user
+            break
+    
+    if not username:
+        return
+    
+    game_id = users[username].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    state = game['game_state']
+    
+    if state['round_phase'] != 'answering':
+        emit('error', {'message': 'Nicht in der Antwortphase'})
+        return
+    
+    czar = game['players'][state['current_czar_index']]
+    if username == czar:
+        emit('error', {'message': 'Der Card Czar darf nicht antworten'})
+        return
+    
+    # Validiere Antworten
+    answer_indices = data.get('answer_indices', [])
+    num_blanks = state['current_question']['num_blanks']
+    
+    if len(answer_indices) != num_blanks:
+        emit('error', {'message': f'Bitte wähle genau {num_blanks} Karte(n)'})
+        return
+    
+    # Speichere Antworten
+    state['submitted_answers'][username] = answer_indices
+    
+    # Benachrichtige alle über Abgabe
+    socketio.emit('player_submitted', {
+        'username': username,
+        'submitted_count': len(state['submitted_answers']),
+        'total_players': len(game['players']) - 1  # -1 für Czar
+    }, room=game_id)
+    
+    # Prüfe ob alle abgegeben haben
+    if len(state['submitted_answers']) == len(game['players']) - 1:
+        # Stoppe Timer und Sync-Task
+        if state['round_timer']:
+            state['round_timer'].cancel()
+        if state['timer_sync_task']:
+            try:
+                state['timer_sync_task'].kill()
+            except:
+                pass
+        start_voting_phase(game_id)
+
+def start_voting_phase(game_id):
+    """Startet die Voting-Phase"""
+    if game_id not in games:
+        return
+    
+    game = games[game_id]
+    state = game['game_state']
+    
+    state['round_phase'] = 'voting'
+    
+    # Erstelle anonymisierte Antworten für Voting
+    answer_options = []
+    player_mapping = []  # Tracking für Gewinner
+    
+    for player, answer_indices in state['submitted_answers'].items():
+        hand = state['player_hands'][player]
+        answers = [hand[i] for i in answer_indices]
+        answer_options.append(answers)
+        player_mapping.append(player)
+    
+    # Mische Antworten
+    combined = list(zip(answer_options, player_mapping))
+    random.shuffle(combined)
+    answer_options, player_mapping = zip(*combined)
+    
+    # Speichere Mapping für später
+    state['vote_mapping'] = list(player_mapping)
+    
+    # Sende an alle
+    czar = game['players'][state['current_czar_index']]
+    socketio.emit('voting_phase', {
+        'czar': czar,
+        'question': state['current_question'],
+        'answer_options': [{'answers': opt} for opt in answer_options]
+    }, room=game_id)
+
+@socketio.on('vote_winner')
+def handle_vote_winner(data):
+    """Card Czar wählt Gewinner"""
+    username = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            username = user
+            break
+    
+    if not username:
+        return
+    
+    game_id = users[username].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    state = game['game_state']
+    
+    if state['round_phase'] != 'voting':
+        emit('error', {'message': 'Nicht in der Voting-Phase'})
+        return
+    
+    czar = game['players'][state['current_czar_index']]
+    if username != czar:
+        emit('error', {'message': 'Nur der Card Czar darf abstimmen'})
+        return
+    
+    winner_index = data.get('winner_index')
+    
+    # Finde Gewinner aus dem gespeicherten Mapping
+    if 'vote_mapping' not in state or winner_index < 0 or winner_index >= len(state['vote_mapping']):
+        emit('error', {'message': 'Ungültiger Index'})
+        return
+    
+    winner = state['vote_mapping'][winner_index]
+    
+    # Hole die Antworten des Gewinners
+    winner_answer_indices = state['submitted_answers'][winner]
+    winner_answers = [state['player_hands'][winner][i] for i in winner_answer_indices]
+    
+    # Punkt vergeben
+    state['player_scores'][winner] += 1
+    
+    # Prüfe auf Spielende
+    if state['player_scores'][winner] >= game['settings']['win_score']:
+        end_game(game_id, winner)
+        return
+    
+    # Zeige Rundenergebnis
+    round_delay = game['settings'].get('round_delay', 5)
+    socketio.emit('round_result', {
+        'winner': winner,
+        'winner_answers': winner_answers,
+        'question': state['current_question'],
+        'scores': state['player_scores'],
+        'next_round_in': round_delay
+    }, room=game_id)
+    
+    # Nach konfigurierbarer Zeit nächste Runde
+    def next_round():
+        socketio.sleep(float(round_delay))
+        if game_id not in games:
+            return
+        refill_hands(game_id)
+        state['current_czar_index'] = (state['current_czar_index'] + 1) % len(game['players'])
+        start_new_round(game_id)
+    
+    socketio.start_background_task(next_round)
+
+def refill_hands(game_id):
+    """Füllt Spielerhände wieder auf"""
+    if game_id not in games:
+        return
+    
+    game = games[game_id]
+    state = game['game_state']
+    max_cards = game['settings']['max_cards']
+    
+    for player in game['players']:
+        hand = state['player_hands'][player]
+        # Entferne gespielte Karten
+        if player in state['submitted_answers']:
+            indices = sorted(state['submitted_answers'][player], reverse=True)
+            for idx in indices:
+                if idx < len(hand):
+                    hand.pop(idx)
+        
+        # Fülle auf
+        while len(hand) < max_cards and state['answer_deck']:
+            hand.append(state['answer_deck'].pop())
+
+def end_game(game_id, winner):
+    """Beendet das Spiel"""
+    if game_id not in games:
+        return
+    
+    game = games[game_id]
+    state = game['game_state']
+    
+    socketio.emit('game_ended', {
+        'winner': winner,
+        'final_scores': state['player_scores']
+    }, room=game_id)
+    
+    # Reset Spiel
+    game['started'] = False
+    game['game_state'] = None
     socketio.emit('lobby_update', {'games': get_public_games()})
 
 if __name__ == '__main__':

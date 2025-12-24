@@ -127,6 +127,20 @@ button {
 .user-info {
     font-size: 16px;
     color: #666;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-logout {
+    background: #666;
+    color: white;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.btn-logout:hover {
+    background: #555;
 }
 
 /* Lobby */
@@ -401,6 +415,314 @@ button {
     text-align: center;
 }
 
+/* Game Play Styles */
+#game-screen.playing .game-content {
+    grid-template-columns: 1fr;
+}
+
+#game-screen.playing .players-panel {
+    display: none;
+}
+
+.game-active {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.czar-banner {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.question-card {
+    background: #1a1a1a;
+    color: white;
+    padding: 40px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+
+.card-label {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #999;
+}
+
+.question-text {
+    font-size: 24px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.timer-display {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    font-size: 16px;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.scores-panel {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.score-item {
+    background: #f8f9fa;
+    padding: 10px 20px;
+    border-radius: 6px;
+    border: 2px solid #e0e0e0;
+}
+
+.score-item.leading {
+    border-color: #4caf50;
+    background: #e8f5e9;
+}
+
+.score-item .score-name {
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.score-item .score-value {
+    color: #667eea;
+    font-weight: bold;
+}
+
+.phase-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #667eea;
+}
+
+.selection-info {
+    text-align: center;
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: #666;
+}
+
+.card-hand {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.answer-card {
+    background: white;
+    border: 3px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    min-height: 150px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 16px;
+    position: relative;
+}
+
+.answer-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
+}
+
+.answer-card.selected {
+    border-color: #667eea;
+    background: #e3f2fd;
+    transform: translateY(-5px);
+}
+
+.answer-card .selection-number {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #667eea;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.waiting-message {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.waiting-message h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.waiting-message p {
+    color: #666;
+    font-size: 18px;
+}
+
+#submission-status {
+    margin-top: 25px;
+    font-size: 18px;
+    color: #667eea;
+    font-weight: 600;
+}
+
+.answer-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.answer-option {
+    background: white;
+    border: 3px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.answer-option:hover {
+    border-color: #667eea;
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.answer-option.selected-winner {
+    border-color: #4caf50;
+    background: #e8f5e9;
+}
+
+.answer-option .answer-text {
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.result-banner, .game-end-banner {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.result-banner h2 {
+    color: #4caf50;
+    font-size: 32px;
+    margin-bottom: 20px;
+}
+
+.winning-combination {
+    margin: 25px 0;
+    padding: 20px;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 12px;
+}
+
+.result-question {
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.result-question .filled-answer {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.result-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.result-answer-card {
+    background: white;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    padding: 15px;
+    font-size: 18px;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.next-round-countdown {
+    font-size: 20px;
+    color: #666;
+    margin-top: 15px;
+}
+
+.next-round-countdown span {
+    color: #667eea;
+    font-weight: bold;
+    font-size: 24px;
+}
+
+.game-end-banner h1 {
+    color: #667eea;
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.game-end-banner h2 {
+    color: #4caf50;
+    font-size: 36px;
+    margin-bottom: 30px;
+}
+
+#final-scores {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    margin: 30px auto;
+}
+
+.final-score-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: white;
+    border-radius: 8px;
+    font-size: 18px;
+}
+
+.final-score-item.winner {
+    border: 3px solid #ffd700;
+    background: #fffbea;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .game-content {
@@ -414,5 +736,47 @@ button {
     
     h1 {
         font-size: 2em;
+    }
+    
+    .question-card {
+        font-size: 16px;
+        padding: 20px;
+        min-height: 120px;
+    }
+    
+    .question-text {
+        font-size: 18px;
+    }
+    
+    .card-hand {
+        grid-template-columns: 1fr;
+    }
+    
+    .answer-card {
+        min-height: 120px;
+        font-size: 14px;
+        padding: 15px;
+    }
+    
+    .game-end-banner h1 {
+        font-size: 28px;
+    }
+    
+    .game-end-banner h2 {
+        font-size: 22px;
+    }
+    
+    .czar-banner {
+        font-size: 14px;
+        padding: 10px;
+    }
+    
+    .scores-panel {
+        gap: 8px;
+    }
+    
+    .score-item {
+        padding: 8px 12px;
+        font-size: 14px;
     }
 }

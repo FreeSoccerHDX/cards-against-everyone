@@ -27,6 +27,7 @@
                 <h1>Lobby</h1>
                 <div class="user-info">
                     <span>Willkommen, <strong id="current-username"></strong>!</span>
+                    <button id="logout-btn" class="btn-logout">Abmelden</button>
                 </div>
             </div>
 
@@ -122,11 +123,19 @@
                             </div>
                             <div class="form-group">
                                 <label>Maximale Karten pro Spieler</label>
-                                <input type="number" id="settings-max-cards" class="settings-input" min="5" max="15" value="10">
+                                <input type="number" id="settings-max-cards" class="settings-input" min="5" max="15" value="7">
                             </div>
                             <div class="form-group">
                                 <label>Punkte zum Gewinnen</label>
-                                <input type="number" id="settings-win-score" class="settings-input" min="3" max="20" value="7">
+                                <input type="number" id="settings-win-score" class="settings-input" min="3" max="20" value="10">
+                            </div>
+                            <div class="form-group">
+                                <label>Zeit für Antworten (Sekunden)</label>
+                                <input type="number" id="settings-answer-time" class="settings-input" min="30" max="300" value="60">
+                            </div>
+                            <div class="form-group">
+                                <label>Zeit zwischen Runden (Sekunden)</label>
+                                <input type="number" id="settings-round-delay" class="settings-input" min="3" max="15" value="5">
                             </div>
                             <p class="info-text" id="creator-info" style="display: none;">Nur der Ersteller kann Einstellungen ändern</p>
                         </div>
@@ -137,8 +146,77 @@
                     </div>
 
                     <div id="game-play-panel" style="display: none;">
-                        <h2>Spiel läuft...</h2>
-                        <p>Das Spiel wurde gestartet!</p>
+                        <!-- Aktives Spiel -->
+                        <div class="game-active">
+                            <!-- Card Czar Info -->
+                            <div id="czar-info" class="czar-banner">
+                                <span id="czar-text"></span>
+                            </div>
+
+                            <!-- Frage-Karte -->
+                            <div class="question-card">
+                                <div class="card-label">FRAGE</div>
+                                <div id="question-text" class="question-text"></div>
+                                <div id="timer-display" class="timer-display"></div>
+                            </div>
+
+                            <!-- Punkte -->
+                            <div id="scores-panel" class="scores-panel"></div>
+
+                            <!-- Antwort-Phase: Spieler wählt Karten -->
+                            <div id="answer-phase" style="display: none;">
+                                <div class="phase-title">Wähle <span id="cards-needed">1</span> Karte(n)</div>
+                                <div class="selection-info">
+                                    <span id="selection-count">0</span> / <span id="selection-max">1</span> ausgewählt
+                                </div>
+                                <div id="player-hand" class="card-hand"></div>
+                                <button id="submit-answers-btn" class="btn-primary btn-large" disabled>Abgeben</button>
+                            </div>
+
+                            <!-- Waiting-Phase: Czar wartet -->
+                            <div id="czar-waiting-phase" style="display: none;">
+                                <div class="waiting-message">
+                                    <h3>Du bist der Card Czar!</h3>
+                                    <p>Warte, während die anderen Spieler ihre Karten auswählen...</p>
+                                    <div id="submission-status"></div>
+                                </div>
+                            </div>
+
+                            <!-- Voting-Phase: Czar wählt Gewinner -->
+                            <div id="voting-phase" style="display: none;">
+                                <div class="phase-title">Wähle die beste Antwort!</div>
+                                <div id="answer-options" class="answer-options"></div>
+                            </div>
+
+                            <!-- Waiting for Czar Vote -->
+                            <div id="waiting-vote-phase" style="display: none;">
+                                <div class="waiting-message">
+                                    <h3>Warte auf die Entscheidung des Card Czars...</h3>
+                                </div>
+                            </div>
+
+                            <!-- Runden-Ergebnis -->
+                            <div id="result-phase" style="display: none;">
+                                <div class="result-banner">
+                                    <h2><span id="round-winner"></span> gewinnt diese Runde!</h2>
+                                    <div class="winning-combination">
+                                        <div class="result-question" id="result-question"></div>
+                                        <div class="result-answers" id="result-answers"></div>
+                                    </div>
+                                    <p class="next-round-countdown">Nächste Runde in <span id="countdown-timer">5</span> Sekunden...</p>
+                                </div>
+                            </div>
+
+                            <!-- Spiel Ende -->
+                            <div id="game-end-phase" style="display: none;">
+                                <div class="game-end-banner">
+                                    <h1>🎉 SPIEL VORBEI! 🎉</h1>
+                                    <h2><span id="game-winner"></span> hat gewonnen!</h2>
+                                    <div id="final-scores"></div>
+                                    <button id="back-to-lobby-btn" class="btn-primary btn-large">Zurück zur Lobby</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
