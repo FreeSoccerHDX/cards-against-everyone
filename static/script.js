@@ -258,7 +258,7 @@ socket.on('reconnected', (data) => {
             
             // Setze Timer
             if (data.timer !== undefined) {
-                updateTimerDisplay(data.timer);
+                updateTimerDisplay(data.timer, data.answer_time || data.czar_time || 60);
             }
             
             // Zeige Frage wenn vorhanden
@@ -828,7 +828,7 @@ socket.on('round_started', (data) => {
     // Timer anzeigen und initial setzen
     timerDisplay.style.display = 'block';
     if (data.answer_time) {
-        updateTimerDisplay(data.answer_time);
+        updateTimerDisplay(data.answer_time, data.answer_time);
     }
     
     if (isCzar) {
@@ -844,7 +844,14 @@ socket.on('round_started', (data) => {
     }
 });
 
-function updateTimerDisplay(timeLeft) {
+let maxTimerValue = 60; // Wird beim Start der Runde gesetzt
+
+function updateTimerDisplay(timeLeft, maxTime) {
+    // Setze maxTime wenn vorhanden
+    if (maxTime !== undefined) {
+        maxTimerValue = maxTime;
+    }
+    
     // Timer ausblenden bei -1
     if (timeLeft < 0) {
         timerDisplay.style.display = 'none';
@@ -852,20 +859,43 @@ function updateTimerDisplay(timeLeft) {
     }
     
     timerDisplay.style.display = 'block';
-    timerDisplay.textContent = `⏱️ ${timeLeft}s`;
     
-    if (timeLeft <= 10) {
-        timerDisplay.style.color = '#f44336';
-    } else {
-        timerDisplay.style.color = '';
+    const timerSeconds = document.getElementById('timer-seconds');
+    const timerCircle = document.querySelector('.timer-circle-progress');
+    const timerText = document.querySelector('.timer-text');
+    
+    // Update Zahl
+    timerSeconds.textContent = timeLeft;
+    
+    // Berechne Prozentsatz für Kreis (r=22 für kleineren Kreis)
+    const circumference = 2 * Math.PI * 22;
+    const progress = timeLeft / maxTimerValue;
+    const offset = circumference * (1 - progress);
+    
+    timerCircle.style.strokeDashoffset = offset;
+    
+    // Farbe basierend auf verbleibender Zeit
+    timerCircle.classList.remove('warning', 'danger');
+    timerText.classList.remove('danger');
+    
+    const percentLeft = (timeLeft / maxTimerValue) * 100;
+    
+    if (percentLeft <= 20 || timeLeft <= 10) {
+        // Rot: Weniger als 20% oder 10 Sekunden
+        timerCircle.classList.add('danger');
+        timerText.classList.add('danger');
+    } else if (percentLeft <= 50 || timeLeft <= 20) {
+        // Gelb: Weniger als 50% oder 20 Sekunden
+        timerCircle.classList.add('warning');
     }
+    // Sonst grün (Standard)
 }
 
 // Timer-Sync vom Server (jede Sekunde)
 socket.on('timer_sync', (data) => {
     // Aktualisiere Display direkt mit Server-Zeit
     if (data.time_left !== undefined) {
-        updateTimerDisplay(data.time_left);
+        updateTimerDisplay(data.time_left, data.max_time);
     }
 });
 

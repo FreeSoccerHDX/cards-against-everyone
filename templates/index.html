@@ -177,7 +177,15 @@
                             <div class="question-card">
                                 <div class="card-label">FRAGE</div>
                                 <div id="question-text" class="question-text"></div>
-                                <div id="timer-display" class="timer-display"></div>
+                                <div id="timer-display" class="timer-display">
+                                    <svg class="timer-circle" width="50" height="50" viewBox="0 0 50 50">
+                                        <circle class="timer-circle-bg" cx="25" cy="25" r="22" />
+                                        <circle class="timer-circle-progress" cx="25" cy="25" r="22" />
+                                    </svg>
+                                    <div class="timer-text">
+                                        <span id="timer-seconds">0</span>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Punkte -->

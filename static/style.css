@@ -550,11 +550,63 @@ button {
 
 .timer-display {
     position: absolute;
-    bottom: 15px;
-    right: 15px;
+    bottom: 5px;
+    right: 5px;
+    display: none;
+}
+
+.timer-circle {
+    transform: rotate(-90deg);
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.timer-circle-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.2);
+    stroke-width: 4;
+}
+
+.timer-circle-progress {
+    fill: none;
+    stroke: #4caf50;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 138;
+    stroke-dashoffset: 0;
+    transition: stroke 0.3s ease, stroke-dashoffset 0.3s linear;
+}
+
+.timer-circle-progress.warning {
+    stroke: #ff9800;
+}
+
+.timer-circle-progress.danger {
+    stroke: #f44336;
+}
+
+.timer-text {
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     font-size: 16px;
-    color: #ffd700;
     font-weight: bold;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes timerPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+.timer-text.danger {
+    animation: timerPulse 0.5s ease-in-out infinite;
+    color: #f44336;
 }
 
 .scores-panel {
@@ -730,7 +782,7 @@ button {
 .result-question .filled-answer {
     color: #667eea;
     background: rgba(102, 126, 234, 0.1);
-    padding: 4px 8px;
+    padding: 4px 4px;
     border-radius: 4px;
     font-weight: bold;
 }
@@ -828,8 +880,8 @@ button {
     .question-card {
         font-size: 16px;
         padding: 20px;
-        padding-top: 40px;
-        padding-bottom: 40px;
+        padding-top: 30px;
+        padding-bottom: 70px;
         min-height: 120px;
     }
     
