@@ -780,7 +780,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Klopf! Klopf!Wer ist da?_____.",
+        "card_text": "Klopf! Klopf!<br>Wer ist da? _____",
         "num_blanks": 1
     },
     {
@@ -4041,7 +4041,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Hey Baby: Klopf Klopf!                       Wer ist da?                            Sex!                                                 Sex wer?                                         Sex mit _____,               BOOOM ツ",
+        "card_text": "Hey Baby: Klopf Klopf!<br>Wer ist da?<br>Sex!<br>Sex wer?<br>Sex mit _____, BOOOM ツ",
         "num_blanks": 1
     },
     {

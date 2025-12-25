@@ -4,6 +4,7 @@ let currentUsername = null;
 let currentGameId = null;
 let currentGameCreator = null; // Track den aktuellen Creator
 let isCreator = false;
+let isPaused = false; // Track Pause-Status
 let selectedGameForJoin = null;
 
 // DOM Elements
@@ -47,12 +48,18 @@ const settingsPassword = document.getElementById('settings-password');
 const settingsMaxCards = document.getElementById('settings-max-cards');
 const settingsWinScore = document.getElementById('settings-win-score');
 const settingsAnswerTime = document.getElementById('settings-answer-time');
+const settingsCzarTime = document.getElementById('settings-czar-time');
 const settingsRoundDelay = document.getElementById('settings-round-delay');
 const creatorInfo = document.getElementById('creator-info');
 const startGameBtn = document.getElementById('start-game-btn');
 
 const settingsPanel = document.getElementById('settings-panel');
 const gamePlayPanel = document.getElementById('game-play-panel');
+
+const pauseGameBtn = document.getElementById('pause-game-btn');
+const resumeGameBtn = document.getElementById('resume-game-btn');
+const resetLobbyBtn = document.getElementById('reset-lobby-btn');
+const pauseOverlay = document.getElementById('pause-overlay');
 
 const notification = document.getElementById('notification');
 
@@ -130,6 +137,32 @@ window.addEventListener('load', () => {
     }
 });
 
+// Handle Server-Neustart: Seite neu laden
+socket.on('disconnect', () => {
+    console.log('Verbindung zum Server verloren');
+});
+
+socket.on('connect', () => {
+    console.log('Verbindung zum Server hergestellt');
+    
+    // Wenn wir bereits einen Username hatten und in einem Spiel waren,
+    // aber der Server neugestartet wurde, laden wir die Seite neu
+    if (currentUsername && currentGameId) {
+        // Versuche zu reconnecten
+        socket.emit('reconnect_user', { username: currentUsername });
+        
+        // Wenn nach kurzer Zeit keine Antwort kommt, neu laden
+        setTimeout(() => {
+            // Prüfe ob wir noch im Spiel sind
+            if (currentGameId) {
+                console.log('Server-Neustart erkannt, lade Seite neu...');
+                clearSavedUsername();
+                location.reload();
+            }
+        }, 1000);
+    }
+});
+
 // Socket Events
 socket.on('username_set', (data) => {
     currentUsername = data.username;
@@ -150,6 +183,13 @@ socket.on('username_set', (data) => {
 socket.on('username_error', (data) => {
     usernameError.textContent = data.message;
     showNotification(data.message, 'error');
+    
+    // Wenn wir bereits im Spiel waren aber Session abgelaufen ist (Server-Neustart),
+    // lösche gespeicherte Daten und lade neu
+    if (data.message.includes('abgelaufen') && currentGameId) {
+        clearSavedUsername();
+        setTimeout(() => location.reload(), 1000);
+    }
 });
 
 socket.on('reconnected', (data) => {
@@ -358,6 +398,20 @@ socket.on('settings_updated', (data) => {
     updateGameRoom(data.game);
 });
 
+pauseGameBtn.addEventListener('click', () => {
+    socket.emit('pause_game');
+});
+
+resumeGameBtn.addEventListener('click', () => {
+    socket.emit('resume_game');
+});
+
+resetLobbyBtn.addEventListener('click', () => {
+    if (confirm('Spiel für alle zurücksetzen?')) {
+        socket.emit('reset_to_lobby');
+    }
+});
+
 leaveGameBtn.addEventListener('click', () => {
     if (confirm('Möchtest du wirklich zur Lobby zurückkehren?')) {
         socket.emit('leave_game');
@@ -394,6 +448,7 @@ function updateGameRoom(game) {
     settingsMaxCards.value = game.settings.max_cards;
     settingsWinScore.value = game.settings.win_score;
     settingsAnswerTime.value = game.settings.answer_time || 60;
+    settingsCzarTime.value = game.settings.czar_time || 30;
     settingsRoundDelay.value = game.settings.round_delay || 5;
     
     // Disable settings for non-creators
@@ -414,6 +469,17 @@ function updateGameRoom(game) {
     if (game.started) {
         settingsPanel.style.display = 'none';
         gamePlayPanel.style.display = 'block';
+        
+        // Update game controls visibility
+        if (isCreator) {
+            pauseGameBtn.style.display = 'inline-block';
+            resumeGameBtn.style.display = 'none';
+            resetLobbyBtn.style.display = 'inline-block';
+        } else {
+            pauseGameBtn.style.display = 'none';
+            resumeGameBtn.style.display = 'none';
+            resetLobbyBtn.style.display = 'none';
+        }
     } else {
         settingsPanel.style.display = 'block';
         gamePlayPanel.style.display = 'none';
@@ -461,6 +527,7 @@ function autoSaveSettings() {
                 max_cards: parseInt(settingsMaxCards.value),
                 win_score: parseInt(settingsWinScore.value),
                 answer_time: parseInt(settingsAnswerTime.value),
+                czar_time: parseInt(settingsCzarTime.value),
                 round_delay: parseInt(settingsRoundDelay.value)
             }
         };
@@ -474,6 +541,7 @@ settingsPassword.addEventListener('input', autoSaveSettings);
 settingsMaxCards.addEventListener('input', autoSaveSettings);
 settingsWinScore.addEventListener('input', autoSaveSettings);
 settingsAnswerTime.addEventListener('input', autoSaveSettings);
+settingsCzarTime.addEventListener('input', autoSaveSettings);
 settingsRoundDelay.addEventListener('input', autoSaveSettings);
 
 // Start Game
@@ -486,6 +554,17 @@ socket.on('game_started', (data) => {
     gamePlayPanel.style.display = 'block';
     gameScreen.classList.add('playing');
     showNotification('Spiel gestartet!', 'success');
+    
+    // Show game controls for creator
+    if (isCreator) {
+        pauseGameBtn.style.display = 'inline-block';
+        resumeGameBtn.style.display = 'none';
+        resetLobbyBtn.style.display = 'inline-block';
+    } else {
+        pauseGameBtn.style.display = 'none';
+        resumeGameBtn.style.display = 'none';
+        resetLobbyBtn.style.display = 'none';
+    }
 });
 
 // Game Play Variables
@@ -537,7 +616,8 @@ socket.on('round_started', (data) => {
         'Du bist der Card Czar dieser Runde!' : 
         `Card Czar: ${data.czar}`;
     
-    questionText.innerHTML = data.question.card_text.replace(/_/g, '<span class="blank">____</span>');
+    // Ersetze nur komplette Blanks (5 Unterstriche)
+    questionText.innerHTML = data.question.card_text.replace(/_____/g, '<span class="blank">_____</span>');
     
     updateScores(data.scores);
     
@@ -566,55 +646,34 @@ let timerEndTime = null;
 
 function startRoundTimer(seconds) {
     console.log('Starte Timer für', seconds, 'Sekunden');
-    if (timerInterval) clearInterval(timerInterval);
-    
-    // Speichere Endzeitpunkt (wird vom Server synchronisiert)
+    // Kein lokales Interval mehr - nur Server-Updates
     timerEndTime = Date.now() + (seconds * 1000);
-    
-    const updateTimer = () => {
-        if (!timerEndTime) {
-            clearInterval(timerInterval);
-            return;
-        }
-        
-        const now = Date.now();
-        const timeLeft = Math.max(0, Math.ceil((timerEndTime - now) / 1000));
-        
-        timerDisplay.textContent = `⏱️ ${timeLeft}s`;
-        
-        if (timeLeft <= 10) {
-            timerDisplay.style.color = '#f44336';
-        } else {
-            timerDisplay.style.color = '';
-        }
-        
-        if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            timerEndTime = null;
-        }
-    };
-    
-    // Sofort aktualisieren
-    updateTimer();
-    
-    // Alle 200ms prüfen
-    timerInterval = setInterval(updateTimer, 200);
+    updateTimerDisplay(seconds);
 }
 
-// Timer-Sync vom Server
+function updateTimerDisplay(timeLeft) {
+    timerDisplay.textContent = `⏱️ ${timeLeft}s`;
+    
+    if (timeLeft <= 10) {
+        timerDisplay.style.color = '#f44336';
+    } else {
+        timerDisplay.style.color = '';
+    }
+}
+
+// Timer-Sync vom Server (jede Sekunde)
 socket.on('timer_sync', (data) => {
-    // Synchronisiere lokalen Timer mit Server-Zeit
+    // Aktualisiere Display direkt mit Server-Zeit
     if (data.time_left !== undefined) {
+        updateTimerDisplay(data.time_left);
         timerEndTime = Date.now() + (data.time_left * 1000);
     }
 });
 
 function stopTimer() {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-    }
+    // Timer läuft nur über Server-Updates, nichts zu stoppen
+    timerEndTime = null;
+    timerDisplay.style.color = '';
 }
 
 function hideAllPhases() {
@@ -667,6 +726,11 @@ function displayHand() {
 }
 
 function toggleCardSelection(index, cardEl) {
+    // Blockiere während Pause
+    if (isPaused) {
+        return;
+    }
+    
     const selectedIndex = selectedCards.indexOf(index);
     
     if (selectedIndex > -1) {
@@ -724,6 +788,12 @@ socket.on('player_submitted', (data) => {
 socket.on('voting_phase', (data) => {
     hideAllPhases();
     
+    // Starte Timer für Card Czar
+    if (data.czar_time) {
+        timerDisplay.style.display = 'block';
+        startRoundTimer(data.czar_time);
+    }
+    
     if (isCzar) {
         votingPhase.style.display = 'block';
         displayAnswerOptions(data.answer_options);
@@ -743,7 +813,7 @@ function displayAnswerOptions(options) {
         let filledText = answerText;
         
         option.answers.forEach((answer, i) => {
-            filledText = filledText.replace('_', `<strong>${escapeHtml(answer)}</strong>`);
+            filledText = filledText.replace('_____', `<strong>${escapeHtml(answer)}</strong>`);
         });
         
         optionEl.innerHTML = `<div class="answer-text">${filledText}</div>`;
@@ -754,8 +824,17 @@ function displayAnswerOptions(options) {
 }
 
 function selectWinner(index, optionEl) {
+    // Blockiere während Pause
+    if (isPaused) {
+        return;
+    }
+    
     document.querySelectorAll('.answer-option').forEach(el => el.classList.remove('selected-winner'));
     optionEl.classList.add('selected-winner');
+    
+    // Stoppe Timer sofort wenn Czar auswählt
+    stopTimer();
+    timerDisplay.style.display = 'none';
     
     socket.emit('vote_winner', { winner_index: index });
 }
@@ -765,6 +844,7 @@ let nextRoundCountdown = null;
 
 socket.on('round_result', (data) => {
     stopTimer();
+    timerDisplay.style.display = 'none';
     hideAllPhases();
     resultPhase.style.display = 'block';
     
@@ -829,6 +909,54 @@ socket.on('game_ended', (data) => {
         `;
         finalScores.appendChild(item);
     });
+});
+
+// Pause/Resume Events
+socket.on('game_paused', (data) => {
+    isPaused = true;
+    pauseOverlay.style.display = 'flex';
+    pauseGameBtn.style.display = 'none';
+    resumeGameBtn.style.display = isCreator ? 'inline-block' : 'none';
+    
+    // Zeige verbleibende Zeit an
+    if (data.time_left !== undefined) {
+        updateTimerDisplay(data.time_left);
+    }
+    
+    // Deaktiviere alle Interaktionen
+    submitAnswersBtn.disabled = true;
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => card.style.pointerEvents = 'none');
+    const answerOptions = document.querySelectorAll('.answer-option');
+    answerOptions.forEach(option => option.style.pointerEvents = 'none');
+    
+    showNotification('Spiel pausiert', 'info');
+});
+
+socket.on('game_resumed', (data) => {
+    isPaused = false;
+    pauseOverlay.style.display = 'none';
+    pauseGameBtn.style.display = isCreator ? 'inline-block' : 'none';
+    resumeGameBtn.style.display = 'none';
+    
+    // Aktiviere Interaktionen wieder
+    submitAnswersBtn.disabled = selectedCards.length === 0;
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => card.style.pointerEvents = 'auto');
+    const answerOptions = document.querySelectorAll('.answer-option');
+    answerOptions.forEach(option => option.style.pointerEvents = 'auto');
+    
+    showNotification('Spiel fortgesetzt', 'success');
+});
+
+socket.on('game_reset_to_lobby', (data) => {
+    // Zurück zur Game-Lobby
+    isPaused = false;
+    settingsPanel.style.display = 'block';
+    gamePlayPanel.style.display = 'none';
+    pauseOverlay.style.display = 'none';
+    updateGameRoom(data.game);
+    showNotification('Spiel wurde zurückgesetzt', 'info');
 });
 
 backToLobbyBtn.addEventListener('click', () => {

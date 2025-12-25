@@ -1,6 +1,5 @@
 #!/bin/bash
 
-echo "🛑 Stoppe Container..."
 ./stop.sh
 
 echo "🔨 Baue und starte Container..."

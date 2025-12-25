@@ -3,7 +3,6 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 import uuid
 import time
 import random
-from threading import Timer
 import eventlet
 from questions import CARDS_QUESTIONS
 from answers import CARDS_ANSWERS
@@ -32,6 +31,26 @@ def cleanup_user(username):
                 
                 # Spiel löschen wenn leer
                 if not games[game_id]['players']:
+                    # Stoppe alle Timer wenn das Spiel gelöscht wird
+                    if games[game_id].get('game_state'):
+                        state = games[game_id]['game_state']
+                        
+                        # Stoppe Round Timer
+                        if state.get('round_timer'):
+                            try:
+                                eventlet.kill(state['round_timer'])
+                            except:
+                                pass
+                            state['round_timer'] = None
+                        
+                        # Stoppe Timer Sync Task
+                        if state.get('timer_sync_task'):
+                            try:
+                                eventlet.kill(state['timer_sync_task'])
+                            except:
+                                pass
+                            state['timer_sync_task'] = None
+                    
                     del games[game_id]
                 else:
                     # Informiere andere Spieler
@@ -64,13 +83,15 @@ def handle_disconnect():
             break
     
     if username:
-        # Starte 30-Sekunden-Timer
+        # Starte 30-Sekunden-Timer mit eventlet
         if username in disconnect_timers:
-            disconnect_timers[username].cancel()
+            try:
+                eventlet.kill(disconnect_timers[username])
+            except:
+                pass
         
-        timer = Timer(30.0, cleanup_user, args=[username])
+        timer = eventlet.spawn_after(30.0, cleanup_user, username)
         disconnect_timers[username] = timer
-        timer.start()
 
 @socketio.on('set_username')
 def handle_set_username(data):
@@ -100,7 +121,10 @@ def handle_set_username(data):
     
     # Lösche eventuellen Timer
     if username in disconnect_timers:
-        disconnect_timers[username].cancel()
+        try:
+            eventlet.kill(disconnect_timers[username])
+        except:
+            pass
         del disconnect_timers[username]
     
     emit('username_set', {'username': username})
@@ -117,7 +141,10 @@ def handle_reconnect(data):
         
         # Lösche Timer
         if username in disconnect_timers:
-            disconnect_timers[username].cancel()
+            try:
+                eventlet.kill(disconnect_timers[username])
+            except:
+                pass
             del disconnect_timers[username]
         
         game_id = users[username].get('game_id')
@@ -163,7 +190,8 @@ def handle_create_game(data):
             'max_cards': 7,
             'win_score': 10,
             'answer_time': 60,  # Sekunden für automatische Abgabe
-            'round_delay': 5  # Sekunden zwischen Runden
+            'round_delay': 5,  # Sekunden zwischen Runden
+            'czar_time': 30  # Sekunden für Card Czar Voting
         },
         'started': False,
         'game_state': None  # Wird gesetzt wenn Spiel startet
@@ -287,6 +315,26 @@ def handle_leave_game():
     
     # Spiel löschen wenn leer
     if not game['players']:
+        # Stoppe alle Timer wenn das Spiel gelöscht wird
+        if game.get('game_state'):
+            state = game['game_state']
+            
+            # Stoppe Round Timer
+            if state.get('round_timer'):
+                try:
+                    eventlet.kill(state['round_timer'])
+                except:
+                    pass
+                state['round_timer'] = None
+            
+            # Stoppe Timer Sync Task
+            if state.get('timer_sync_task'):
+                try:
+                    eventlet.kill(state['timer_sync_task'])
+                except:
+                    pass
+                state['timer_sync_task'] = None
+        
         del games[game_id]
     else:
         # Informiere andere Spieler
@@ -409,7 +457,9 @@ def init_game_state(game):
         'round_phase': 'waiting',  # waiting, answering, voting, results
         'round_timer': None,
         'round_start_time': None,  # Server-Zeitstempel für Timer-Sync
-        'timer_sync_task': None  # Background task für Timer-Updates
+        'timer_sync_task': None,  # Background task für Timer-Updates
+        'paused': False,  # Spiel pausiert
+        'pause_time_left': 0  # Verbleibende Zeit beim Pausieren
     }
 
 def start_new_round(game_id):
@@ -454,14 +504,28 @@ def start_new_round(game_id):
     
     # Starte Timer für automatische Abgabe
     answer_time = game['settings'].get('answer_time', 60)
+    
+    # Stoppe alle laufenden Timer und Tasks
     if state['round_timer']:
-        state['round_timer'].cancel()
+        try:
+            eventlet.kill(state['round_timer'])
+        except:
+            pass
+        state['round_timer'] = None
+    
+    if state['timer_sync_task']:
+        try:
+            state['timer_sync_task'].kill()
+        except:
+            pass
+        state['timer_sync_task'] = None
     
     # Speichere Startzeitpunkt für Timer-Sync
     state['round_start_time'] = time.time()
+    state['pause_time_left'] = answer_time  # Speichere Gesamtzeit für Pause-Berechnung
     
-    state['round_timer'] = Timer(answer_time, auto_submit_answers, args=[game_id])
-    state['round_timer'].start()
+    # Verwende eventlet statt threading.Timer
+    state['round_timer'] = eventlet.spawn_after(answer_time, auto_submit_answers, game_id)
     
     # Starte Background-Task für regelmäßige Timer-Updates
     if state['timer_sync_task']:
@@ -475,7 +539,7 @@ def start_new_round(game_id):
             game = games[game_id]
             state = game['game_state']
             
-            if state['round_phase'] != 'answering' or not state['round_start_time']:
+            if state['round_phase'] != 'answering' or not state['round_start_time'] or state.get('paused', False):
                 break
             
             elapsed = time.time() - state['round_start_time']
@@ -486,7 +550,7 @@ def start_new_round(game_id):
             if time_left <= 0:
                 break
             
-            eventlet.sleep(2)  # Update alle 2 Sekunden
+            eventlet.sleep(1)  # Update jede Sekunde
     
     state['timer_sync_task'] = socketio.start_background_task(sync_timer)
 
@@ -497,6 +561,10 @@ def auto_submit_answers(game_id):
     
     game = games[game_id]
     state = game['game_state']
+    
+    # Prüfe ob pausiert
+    if state.get('paused', False):
+        return
     
     if state['round_phase'] != 'answering':
         return
@@ -509,7 +577,10 @@ def auto_submit_answers(game_id):
             hand = state['player_hands'][player]
             num_blanks = state['current_question']['num_blanks']
             if len(hand) >= num_blanks:
-                state['submitted_answers'][player] = list(range(num_blanks))
+                # Wähle zufällige Indizes
+                import random
+                indices = random.sample(range(len(hand)), num_blanks)
+                state['submitted_answers'][player] = indices
     
     # Gehe zur Voting-Phase
     start_voting_phase(game_id)
@@ -532,6 +603,10 @@ def handle_submit_answers(data):
     
     game = games[game_id]
     state = game['game_state']
+    
+    if state.get('paused', False):
+        emit('error', {'message': 'Spiel ist pausiert'})
+        return
     
     if state['round_phase'] != 'answering':
         emit('error', {'message': 'Nicht in der Antwortphase'})
@@ -564,12 +639,17 @@ def handle_submit_answers(data):
     if len(state['submitted_answers']) == len(game['players']) - 1:
         # Stoppe Timer und Sync-Task
         if state['round_timer']:
-            state['round_timer'].cancel()
+            try:
+                eventlet.kill(state['round_timer'])
+            except:
+                pass
+            state['round_timer'] = None
         if state['timer_sync_task']:
             try:
                 state['timer_sync_task'].kill()
             except:
                 pass
+            state['timer_sync_task'] = None
         start_voting_phase(game_id)
 
 def start_voting_phase(game_id):
@@ -581,6 +661,11 @@ def start_voting_phase(game_id):
     state = game['game_state']
     
     state['round_phase'] = 'voting'
+    state['round_start_time'] = time.time()  # Timer für Czar
+    
+    # Czar-Zeit aus Settings
+    czar_time = game['settings'].get('czar_time', 30)
+    state['pause_time_left'] = czar_time  # Speichere für Pause-Berechnung
     
     # Erstelle anonymisierte Antworten für Voting
     answer_options = []
@@ -602,11 +687,88 @@ def start_voting_phase(game_id):
     
     # Sende an alle
     czar = game['players'][state['current_czar_index']]
+    
     socketio.emit('voting_phase', {
         'czar': czar,
         'question': state['current_question'],
-        'answer_options': [{'answers': opt} for opt in answer_options]
+        'answer_options': [{'answers': opt} for opt in answer_options],
+        'czar_time': czar_time
     }, room=game_id)
+    
+    # Starte Auto-Vote Timer
+    def auto_vote_on_timeout():
+        if game_id not in games:
+            return
+        current_game = games[game_id]
+        current_state = current_game['game_state']
+        
+        # Prüfe ob pausiert oder Phase geändert
+        if current_state.get('paused', False) or current_state['round_phase'] != 'voting':
+            return
+        
+        # Ändere Phase sofort um doppelte Ausführung zu vermeiden
+        current_state['round_phase'] = 'result'
+        
+        if current_state['vote_mapping']:
+            import random
+            winner_index = random.randint(0, len(current_state['vote_mapping']) - 1)
+            winner = current_state['vote_mapping'][winner_index]
+            winner_answer_indices = current_state['submitted_answers'][winner]
+            winner_answers = [current_state['player_hands'][winner][i] for i in winner_answer_indices]
+            
+            current_state['player_scores'][winner] += 1
+            
+            if current_state['player_scores'][winner] >= current_game['settings']['win_score']:
+                end_game(game_id, winner)
+            else:
+                round_delay = current_game['settings'].get('round_delay', 5)
+                socketio.emit('round_result', {
+                    'winner': winner,
+                    'winner_answers': winner_answers,
+                    'question': current_state['current_question'],
+                    'scores': current_state['player_scores'],
+                    'next_round_in': round_delay
+                }, room=game_id)
+                
+                def next_round():
+                    socketio.sleep(float(round_delay))
+                    if game_id not in games:
+                        return
+                    refill_hands(game_id)
+                    current_state['current_czar_index'] = (current_state['current_czar_index'] + 1) % len(current_game['players'])
+                    start_new_round(game_id)
+                
+                socketio.start_background_task(next_round)
+    
+    state['round_timer'] = eventlet.spawn_after(czar_time, auto_vote_on_timeout)
+    
+    # Starte Timer-Sync für Voting
+    if state['timer_sync_task']:
+        try:
+            state['timer_sync_task'].kill()
+        except:
+            pass
+    
+    def sync_czar_timer():
+        total_time = czar_time
+        while game_id in games:
+            current_game = games[game_id]
+            current_state = current_game['game_state']
+            
+            if current_state['round_phase'] != 'voting' or not current_state['round_start_time'] or current_state.get('paused', False):
+                break
+            
+            elapsed = time.time() - current_state['round_start_time']
+            time_left = max(0, total_time - int(elapsed))
+            
+            socketio.emit('timer_sync', {'time_left': time_left}, room=game_id)
+            
+            if time_left <= 0:
+                break
+            
+            eventlet.sleep(1)
+    
+    state['timer_sync_task'] = socketio.start_background_task(sync_czar_timer)
 
 @socketio.on('vote_winner')
 def handle_vote_winner(data):
@@ -627,6 +789,10 @@ def handle_vote_winner(data):
     game = games[game_id]
     state = game['game_state']
     
+    if state.get('paused', False):
+        emit('error', {'message': 'Spiel ist pausiert'})
+        return
+    
     if state['round_phase'] != 'voting':
         emit('error', {'message': 'Nicht in der Voting-Phase'})
         return
@@ -644,6 +810,24 @@ def handle_vote_winner(data):
         return
     
     winner = state['vote_mapping'][winner_index]
+    
+    # Ändere Phase sofort um Race Conditions zu vermeiden
+    state['round_phase'] = 'result'
+    
+    # Stoppe Timer und Timer-Sync
+    if state['round_timer']:
+        try:
+            eventlet.kill(state['round_timer'])
+        except:
+            pass
+        state['round_timer'] = None
+    
+    if state['timer_sync_task']:
+        try:
+            state['timer_sync_task'].kill()
+        except:
+            pass
+        state['timer_sync_task'] = None
     
     # Hole die Antworten des Gewinners
     winner_answer_indices = state['submitted_answers'][winner]
@@ -716,6 +900,236 @@ def end_game(game_id, winner):
     # Reset Spiel
     game['started'] = False
     game['game_state'] = None
+    socketio.emit('lobby_update', {'games': get_public_games()})
+
+@socketio.on('pause_game')
+def handle_pause_game():
+    username = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            username = user
+            break
+    
+    if not username:
+        return
+    
+    game_id = users[username].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    
+    # Nur Ersteller kann pausieren
+    if game['creator'] != username:
+        emit('error', {'message': 'Nur der Ersteller kann das Spiel pausieren'})
+        return
+    
+    if not game['started']:
+        return
+    
+    state = game['game_state']
+    
+    if state['paused']:
+        return
+    
+    state['paused'] = True
+    
+    # Berechne verbleibende Zeit basierend auf der seit Resume verstrichenen Zeit
+    if state['round_start_time'] and 'pause_time_left' in state:
+        elapsed_since_resume = time.time() - state['round_start_time']
+        # Ziehe die seit Resume verstrichene Zeit von der verbleibenden Zeit ab
+        state['pause_time_left'] = max(1, state['pause_time_left'] - int(elapsed_since_resume))
+    
+    # Stoppe Timer
+    if state['round_timer']:
+        try:
+            eventlet.kill(state['round_timer'])
+        except:
+            pass
+        state['round_timer'] = None
+    
+    if state['timer_sync_task']:
+        try:
+            state['timer_sync_task'].kill()
+        except:
+            pass
+        state['timer_sync_task'] = None
+    
+    # Informiere alle Spieler mit verbleibender Zeit
+    socketio.emit('game_paused', {'time_left': state.get('pause_time_left', 0)}, room=game_id)
+
+@socketio.on('resume_game')
+def handle_resume_game():
+    username = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            username = user
+            break
+    
+    if not username:
+        return
+    
+    game_id = users[username].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    
+    # Nur Ersteller kann fortsetzen
+    if game['creator'] != username:
+        emit('error', {'message': 'Nur der Ersteller kann das Spiel fortsetzen'})
+        return
+    
+    if not game['started']:
+        return
+    
+    state = game['game_state']
+    
+    if not state['paused']:
+        return
+    
+    state['paused'] = False
+    
+    # Starte Timer neu mit verbleibender Zeit
+    if state['pause_time_left'] > 0:
+        state['round_start_time'] = time.time()
+        
+        if state['round_phase'] == 'answering':
+            remaining_time = state['pause_time_left']
+            state['round_timer'] = eventlet.spawn_after(remaining_time, auto_submit_answers, game_id)
+            
+            def sync_timer():
+                answer_time = remaining_time
+                start_offset = time.time()
+                while game_id in games:
+                    current_game = games[game_id]
+                    current_state = current_game['game_state']
+                    
+                    if current_state['round_phase'] != 'answering' or not current_state['round_start_time'] or current_state.get('paused', False):
+                        break
+                    
+                    elapsed = time.time() - start_offset
+                    time_left = max(0, answer_time - int(elapsed))
+                    
+                    socketio.emit('timer_sync', {'time_left': time_left}, room=game_id)
+                    
+                    if time_left <= 0:
+                        break
+                    
+                    eventlet.sleep(1)
+            
+            state['timer_sync_task'] = socketio.start_background_task(sync_timer)
+            
+        elif state['round_phase'] == 'voting':
+            # Voting-Phase Timer
+            czar_time = state['pause_time_left']
+            
+            # Starte Auto-Vote Timer
+            def auto_vote_after_pause():
+                if game_id not in games:
+                    return
+                current_game = games[game_id]
+                current_state = current_game['game_state']
+                
+                # Prüfe ob pausiert oder Phase geändert
+                if current_state.get('paused', False) or current_state['round_phase'] != 'voting':
+                    return
+                
+                if current_state['vote_mapping']:
+                    winner_index = random.randint(0, len(current_state['vote_mapping']) - 1)
+                    winner = current_state['vote_mapping'][winner_index]
+                    winner_answer_indices = current_state['submitted_answers'][winner]
+                    winner_answers = [current_state['player_hands'][winner][i] for i in winner_answer_indices]
+                    
+                    # Stoppe Timer
+                    if current_state['round_timer']:
+                        try:
+                            eventlet.kill(current_state['round_timer'])
+                        except:
+                            pass
+                        current_state['round_timer'] = None
+                    
+                    current_state['player_scores'][winner] += 1
+                    
+                    if current_state['player_scores'][winner] >= current_game['settings']['win_score']:
+                        end_game(game_id, winner)
+                    else:
+                        round_delay = current_game['settings'].get('round_delay', 5)
+                        socketio.emit('round_result', {
+                            'winner': winner,
+                            'winner_answers': winner_answers,
+                            'question': current_state['current_question'],
+                            'scores': current_state['player_scores'],
+                            'next_round_in': round_delay
+                        }, room=game_id)
+                        
+                        def next_round():
+                            socketio.sleep(float(round_delay))
+                            if game_id not in games:
+                                return
+                            refill_hands(game_id)
+                            current_state['current_czar_index'] = (current_state['current_czar_index'] + 1) % len(current_game['players'])
+                            start_new_round(game_id)
+                        
+                        socketio.start_background_task(next_round)
+            
+            state['round_timer'] = eventlet.spawn_after(czar_time, auto_vote_after_pause)
+            
+            def sync_czar_timer():
+                remaining_czar_time = czar_time
+                start_offset = time.time()
+                while game_id in games:
+                    current_game = games[game_id]
+                    current_state = current_game['game_state']
+                    
+                    if current_state['round_phase'] != 'voting' or not current_state['round_start_time'] or current_state.get('paused', False):
+                        break
+                    
+                    elapsed = time.time() - start_offset
+                    time_left = max(0, remaining_czar_time - int(elapsed))
+                    
+                    socketio.emit('timer_sync', {'time_left': time_left}, room=game_id)
+                    
+                    if time_left <= 0:
+                        break
+                    
+                    eventlet.sleep(1)
+            
+            state['timer_sync_task'] = socketio.start_background_task(sync_czar_timer)
+    
+    # Informiere alle Spieler
+    socketio.emit('game_resumed', {
+        'time_left': state['pause_time_left']
+    }, room=game_id)
+
+@socketio.on('reset_to_lobby')
+def handle_reset_to_lobby():
+    username = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            username = user
+            break
+    
+    if not username:
+        return
+    
+    game_id = users[username].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    
+    # Nur Ersteller kann zurück zur Lobby
+    if game['creator'] != username:
+        emit('error', {'message': 'Nur der Ersteller kann das Spiel zurücksetzen'})
+        return
+    
+    # Reset Spiel
+    game['started'] = False
+    game['game_state'] = None
+    
+    # Informiere alle Spieler
+    socketio.emit('game_reset_to_lobby', {'game': game}, room=game_id)
     socketio.emit('lobby_update', {'games': get_public_games()})
 
 if __name__ == '__main__':

@@ -134,6 +134,10 @@
                                 <input type="number" id="settings-answer-time" class="settings-input" min="30" max="300" value="60">
                             </div>
                             <div class="form-group">
+                                <label>Zeit für Card Czar Auswahl (Sekunden)</label>
+                                <input type="number" id="settings-czar-time" class="settings-input" min="15" max="120" value="30">
+                            </div>
+                            <div class="form-group">
                                 <label>Zeit zwischen Runden (Sekunden)</label>
                                 <input type="number" id="settings-round-delay" class="settings-input" min="3" max="15" value="5">
                             </div>
@@ -146,6 +150,21 @@
                     </div>
 
                     <div id="game-play-panel" style="display: none;">
+                        <!-- Game Control Buttons -->
+                        <div class="game-controls">
+                            <button id="pause-game-btn" class="btn-warning" style="display: none;">⏸️ Pausieren</button>
+                            <button id="resume-game-btn" class="btn-success" style="display: none;">▶️ Fortsetzen</button>
+                            <button id="reset-lobby-btn" class="btn-secondary" style="display: none;">🔄 Zurück zu Einstellungen</button>
+                        </div>
+                        
+                        <!-- Pause Overlay -->
+                        <div id="pause-overlay" style="display: none;">
+                            <div class="pause-message">
+                                <h2>⏸️ SPIEL PAUSIERT</h2>
+                                <p>Warte auf den Spielleiter...</p>
+                            </div>
+                        </div>
+                        
                         <!-- Aktives Spiel -->
                         <div class="game-active">
                             <!-- Card Czar Info -->
