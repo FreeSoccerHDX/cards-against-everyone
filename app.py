@@ -700,13 +700,72 @@ def handle_join_game(data):
         else:
             spectator_statuses[spectator] = 'disconnected'
     
-    emit('game_joined', {
+    # Basis-Daten für Join
+    join_data = {
         'game_id': game_id, 
         'game': game, 
         'player_statuses': player_statuses,
         'spectator_statuses': spectator_statuses,
         'is_spectator': is_spectator
-    })
+    }
+    
+    # Wenn Spiel läuft, sende zusätzliche Runden-Informationen
+    if game['started'] and game.get('game_state'):
+        state = game['game_state']
+        join_data['game_started'] = True
+        join_data['round_phase'] = state.get('round_phase')
+        join_data['scores'] = state.get('player_scores', {})
+        join_data['paused'] = state.get('paused', False)
+        
+        # Aktive Spieler für Czar
+        players = [p for p in game['players'] if p in state.get('active_players', [])]
+        
+        if players and state.get('current_czar_index') is not None:
+            czar_index = state['current_czar_index']
+            if czar_index < len(players):
+                join_data['czar'] = players[czar_index]
+                join_data['is_czar'] = (username == players[czar_index])
+        
+        # Round info
+        join_data['current_round'] = len(state.get('round_history', [])) + 1
+        join_data['max_rounds'] = game['settings'].get('max_rounds', 50)
+        join_data['win_score'] = game['settings']['win_score']
+        join_data['answer_time'] = game['settings']['answer_time']
+        join_data['czar_time'] = game['settings']['czar_time']
+        
+        # Timer
+        if state.get('timer_running'):
+            elapsed = time.time() - state.get('phase_start_time', time.time())
+            max_time = game['settings']['answer_time'] if state.get('round_phase') == 'answering' else game['settings']['czar_time']
+            join_data['timer'] = max(0, int(max_time - elapsed))
+        
+        # Phase-spezifische Daten
+        if state.get('round_phase') in ['answering', 'voting', 'result']:
+            join_data['question'] = state['current_question']
+            
+            # Spectators bekommen keine Hand
+            if not is_spectator and username in state.get('player_hands', {}):
+                join_data['hand'] = state['player_hands'].get(username, [])
+            else:
+                join_data['hand'] = []
+        
+        if state.get('round_phase') == 'answering':
+            if not is_spectator and username in state.get('submitted_answers', {}):
+                join_data['has_submitted'] = True
+            join_data['submitted_count'] = len(state.get('submitted_answers', {}))
+            join_data['total_players'] = len(players) - 1 if players else 0
+        
+        if state.get('round_phase') == 'voting':
+            # Erstelle anonymisierte Antworten
+            answer_options = []
+            for player in state.get('vote_mapping', []):
+                answer_indices = state['submitted_answers'].get(player, [])
+                hand = state['player_hands'].get(player, [])
+                answers = [hand[i] for i in answer_indices if i < len(hand)]
+                answer_options.append({'answers': answers})
+            join_data['answer_options'] = answer_options
+    
+    emit('game_joined', join_data)
     
     # Informiere andere Spieler
     emit('player_joined', {
