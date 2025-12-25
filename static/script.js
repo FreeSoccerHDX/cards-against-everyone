@@ -247,8 +247,8 @@ socket.on('reconnected', (data) => {
             gameScreen.classList.add('playing');
             
             // Blende Spielerlisten aus während des Spiels
-            const playersSection = document.querySelector('.players-section');
-            const spectatorsSection = document.querySelector('.spectators-section');
+            const playersSection = document.querySelector('.players-panel');
+            const spectatorsSection = document.getElementById('spectators-section');
             if (playersSection) playersSection.style.display = 'none';
             if (spectatorsSection) spectatorsSection.style.display = 'none';
             
@@ -599,8 +599,8 @@ socket.on('game_joined', (data) => {
     gameScreen.classList.add('playing');
     
     // Blende Spielerlisten aus
-    const playersSection = document.querySelector('.players-section');
-    const spectatorsSection = document.querySelector('.spectators-section');
+    const playersSection = document.querySelector('.players-panel');
+    const spectatorsSection = document.getElementById('spectators-section');
     if (playersSection) playersSection.style.display = 'none';
     if (spectatorsSection) spectatorsSection.style.display = 'none';
     
@@ -949,12 +949,13 @@ function updateGameRoom(game, spectatorStatuses = {}) {
     
     // Show game or settings
     if (game.started) {
+        console.log('updateGameRoom: game.started = true, hiding player lists');
         settingsPanel.style.display = 'none';
         gamePlayPanel.style.display = 'block';
         
         // Blende Spielerlisten aus während des Spiels
-        const playersSection = document.querySelector('.players-section');
-        const spectatorsSection = document.querySelector('.spectators-section');
+        const playersSection = document.querySelector('.players-panel');
+        const spectatorsSection = document.getElementById('spectators-section');
         if (playersSection) playersSection.style.display = 'none';
         if (spectatorsSection) spectatorsSection.style.display = 'none';
         
@@ -969,14 +970,25 @@ function updateGameRoom(game, spectatorStatuses = {}) {
             resetLobbyBtn.style.display = 'none';
         }
     } else {
+        console.log('updateGameRoom: game.started = false, showing player lists');
         settingsPanel.style.display = 'block';
         gamePlayPanel.style.display = 'none';
         
         // Zeige Spielerlisten in der Lobby
-        const playersSection = document.querySelector('.players-section');
-        const spectatorsSection = document.querySelector('.spectators-section');
-        if (playersSection) playersSection.style.display = 'block';
-        if (spectatorsSection) spectatorsSection.style.display = 'block';
+        const playersSection = document.querySelector('.players-panel');
+        const spectatorsSection = document.getElementById('spectators-section');
+        if (playersSection) {
+            playersSection.style.display = 'block';
+            console.log('Set playersSection to block, current display:', playersSection.style.display);
+        } else {
+            console.log('ERROR: playersSection not found!');
+        }
+        if (spectatorsSection) {
+            spectatorsSection.style.display = 'block';
+            console.log('Set spectatorsSection to block, current display:', spectatorsSection.style.display);
+        } else {
+            console.log('ERROR: spectatorsSection not found!');
+        }
     }
 }
 
@@ -1153,8 +1165,8 @@ socket.on('game_started', (data) => {
     showNotification('Spiel gestartet!', 'success');
     
     // Blende Spielerlisten aus während des Spiels
-    const playersSection = document.querySelector('.players-section');
-    const spectatorsSection = document.querySelector('.spectators-section');
+    const playersSection = document.querySelector('.players-panel');
+    const spectatorsSection = document.getElementById('spectators-section');
     if (playersSection) playersSection.style.display = 'none';
     if (spectatorsSection) spectatorsSection.style.display = 'none';
     
@@ -1749,6 +1761,8 @@ socket.on('game_resumed', (data) => {
 });
 
 socket.on('game_reset_to_lobby', (data) => {
+    console.log('game_reset_to_lobby received, game.started:', data.game.started);
+    
     // Zurück zur Game-Lobby
     isPaused = false;
     settingsPanel.style.display = 'block';
@@ -1764,10 +1778,19 @@ socket.on('game_reset_to_lobby', (data) => {
     updateGameRoom(data.game);
     
     // Stelle sicher dass Spielerlisten sichtbar sind (updateGameRoom sollte das bereits tun)
-    const playersSection = document.querySelector('.players-section');
-    const spectatorsSection = document.querySelector('.spectators-section');
-    if (playersSection) playersSection.style.display = 'block';
-    if (spectatorsSection) spectatorsSection.style.display = 'block';
+    const playersSection = document.querySelector('.players-panel');
+    const spectatorsSection = document.getElementById('spectators-section');
+    console.log('Players section display:', playersSection ? playersSection.style.display : 'not found');
+    console.log('Spectators section display:', spectatorsSection ? spectatorsSection.style.display : 'not found');
+    
+    if (playersSection) {
+        playersSection.style.display = 'block';
+        console.log('Set players section to block');
+    }
+    if (spectatorsSection) {
+        spectatorsSection.style.display = 'block';
+        console.log('Set spectators section to block');
+    }
     
     showNotification('Spiel wurde zurückgesetzt', 'info');
 });
@@ -1796,8 +1819,8 @@ backToLobbyBtn.addEventListener('click', () => {
     scoresPanel.style.display = 'flex';
     
     // Zeige Spielerlisten wieder
-    const playersSection = document.querySelector('.players-section');
-    const spectatorsSection = document.querySelector('.spectators-section');
+    const playersSection = document.querySelector('.players-panel');
+    const spectatorsSection = document.getElementById('spectators-section');
     if (playersSection) playersSection.style.display = 'block';
     if (spectatorsSection) spectatorsSection.style.display = 'block';
     
