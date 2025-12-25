@@ -26,10 +26,16 @@ body {
 .container {
     background: white;
     border-radius: 12px;
-    padding: 40px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     max-width: 1200px;
     width: 100%;
+
+    padding: 40px;
+}
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
 }
 
 #username-screen .container {
@@ -290,11 +296,12 @@ button {
     gap: 30px;
 }
 
-.players-panel {
+.defaultpanel {
     background: #f8f9fa;
-    padding: 20px;
+    padding: 10px;
     border-radius: 8px;
 }
+
 
 #players-list {
     margin-bottom: 20px;
@@ -391,11 +398,6 @@ button {
     width: 100%;
 }
 
-.main-panel {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-}
 
 .settings-form {
     max-width: 600px;
@@ -471,7 +473,8 @@ button {
     text-align: center;
     font-weight: bold;
     font-size: 18px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+    margin-top: 10px;
     color: #333;
 }
 
@@ -663,7 +666,7 @@ button {
 
 .result-banner, .game-end-banner {
     text-align: center;
-    padding: 60px 20px;
+    padding: 10px;
 }
 
 .result-banner h2 {
@@ -758,6 +761,11 @@ button {
     background: #fffbea;
 }
 
+.game-title {
+    padding: 0px;
+    margin: 0px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .game-content {
@@ -765,7 +773,6 @@ button {
     }
     
     .header {
-        flex-direction: column;
         align-items: flex-start;
     }
     
@@ -776,6 +783,8 @@ button {
     .question-card {
         font-size: 16px;
         padding: 20px;
+        padding-top: 40px;
+        padding-bottom: 40px;
         min-height: 120px;
     }
     
