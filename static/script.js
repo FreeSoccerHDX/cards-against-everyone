@@ -6,6 +6,7 @@ let currentGameCreator = null; // Track den aktuellen Creator
 let isCreator = false;
 let isPaused = false; // Track Pause-Status
 let selectedGameForJoin = null;
+let playerStatuses = {}; // Track player connection statuses
 
 // DOM Elements
 const usernameScreen = document.getElementById('username-screen');
@@ -198,8 +199,150 @@ socket.on('reconnected', (data) => {
     
     if (data.game_id && data.game) {
         currentGameId = data.game_id;
-        updateGameRoom(data.game);
-        showScreen(gameScreen);
+        
+        // Initialize player statuses
+        if (data.player_statuses) {
+            playerStatuses = data.player_statuses;
+        }
+        
+        // Wenn Spiel läuft, stelle Spielzustand wieder her
+        if (data.game_started && data.round_phase) {
+            // Update grundlegende Game-Infos
+            currentGameCreator = data.game.creator;
+            isCreator = (data.game.creator === currentUsername);
+            gameTitle.textContent = data.game.name;
+            updatePlayersList(data.game.players, data.game.creator);
+            
+            // Zeige Spielbereich
+            showScreen(gameScreen);
+            settingsPanel.style.display = 'none';
+            gamePlayPanel.style.display = 'block';
+            gameScreen.classList.add('playing');
+            
+            // Update game controls visibility
+            if (isCreator) {
+                pauseGameBtn.style.display = 'inline-block';
+                resumeGameBtn.style.display = 'none';
+                resetLobbyBtn.style.display = 'inline-block';
+            } else {
+                pauseGameBtn.style.display = 'none';
+                resumeGameBtn.style.display = 'none';
+                resetLobbyBtn.style.display = 'none';
+            }
+            
+            // Pause-Status wiederherstellen
+            if (data.paused) {
+                isPaused = true;
+                pauseOverlay.classList.add('active');
+                if (isCreator) {
+                    pauseGameBtn.style.display = 'none';
+                    resumeGameBtn.style.display = 'inline-block';
+                }
+            } else {
+                isPaused = false;
+                pauseOverlay.classList.remove('active');
+            }
+            
+            // Setze Czar-Text
+            if (data.czar) {
+                isCzar = data.is_czar; // Setze globalen isCzar Status
+                czarText.textContent = data.is_czar ? 
+                    'Du bist der Card Czar dieser Runde!' : 
+                    `Card Czar: ${data.czar}`;
+            }
+            
+            // Setze Scores
+            if (data.scores) {
+                updateScores(data.scores);
+            }
+            
+            // Setze Timer
+            if (data.timer !== undefined) {
+                updateTimerDisplay(data.timer);
+            }
+            
+            // Zeige Frage wenn vorhanden
+            if (data.question) {
+                currentQuestion = data.question;
+                questionText.innerHTML = data.question.card_text.replace(/_____/g, '<span class="blank">_____</span>');
+                
+                // Setze Anzahl benötigter Karten
+                if (cardsNeeded) {
+                    cardsNeeded.textContent = data.question.num_blanks;
+                }
+                if (selectionMax) {
+                    selectionMax.textContent = data.question.num_blanks;
+                }
+            }
+            
+            // Zeige Hand-Karten nur wenn noch nicht abgegeben
+            if (data.hand && !data.has_submitted) {
+                currentHand = data.hand;
+                displayHand();
+            } else if (data.has_submitted) {
+                // Hand ausblenden wenn bereits abgegeben
+                selectedCards = [];
+                playerHand.innerHTML = '';
+            }
+            
+            // Phase-spezifischer Zustand
+            if (data.round_phase === 'answering') {
+                answerPhase.style.display = 'none';
+                votingPhase.style.display = 'none';
+                resultPhase.style.display = 'none';
+                czarWaitingPhase.style.display = 'none';
+                waitingVotePhase.style.display = 'none';
+                
+                if (data.is_czar) {
+                    czarWaitingPhase.style.display = 'block';
+                } else if (data.has_submitted) {
+                    // Bereits abgegeben - zeige Warte-Phase
+                    waitingVotePhase.style.display = 'block';
+                } else {
+                    // Noch nicht abgegeben - zeige Antwort-Phase
+                    answerPhase.style.display = 'block';
+                    submitAnswersBtn.disabled = false;
+                }
+                
+                // Zeige Submission Count
+                if (data.submitted_count !== undefined && data.total_players !== undefined) {
+                    submissionStatus.textContent = `${data.submitted_count}/${data.total_players} Spieler haben abgegeben`;
+                }
+                
+            } else if (data.round_phase === 'voting') {
+                answerPhase.style.display = 'none';
+                votingPhase.style.display = 'none';
+                resultPhase.style.display = 'none';
+                czarWaitingPhase.style.display = 'none';
+                waitingVotePhase.style.display = 'none';
+                
+                if (data.is_czar) {
+                    votingPhase.style.display = 'block';
+                    // Zeige Voting-Optionen für Czar (interaktiv)
+                    if (data.answer_options) {
+                        displayAnswerOptions(data.answer_options, true);
+                    }
+                } else {
+                    waitingVotePhase.style.display = 'block';
+                    // Zeige Voting-Optionen für Nicht-Czar (read-only)
+                    if (data.answer_options) {
+                        displayAnswerOptions(data.answer_options, false);
+                    }
+                }
+                
+            } else if (data.round_phase === 'result') {
+                answerPhase.style.display = 'none';
+                votingPhase.style.display = 'none';
+                czarWaitingPhase.style.display = 'none';
+                waitingVotePhase.style.display = 'none';
+                resultPhase.style.display = 'block';
+            }
+            
+        } else {
+            // Spiel nicht gestartet, zeige normale Lobby
+            updateGameRoom(data.game);
+            showScreen(gameScreen);
+        }
     } else if (joinGameId) {
         // Wenn Join-Link vorhanden, hole Spielinfo
         socket.emit('get_game_info', { game_id: joinGameId });
@@ -333,18 +476,10 @@ joinGameCancel.addEventListener('click', () => {
 
 // Handle game info response (für Join-Links)
 socket.on('game_info', (data) => {
-    if (data.started) {
-        showNotification('Spiel bereits gestartet', 'error');
-        showScreen(lobbyScreen);
-        socket.emit('get_public_games');
-        clearUrlParams();
-        return;
-    }
-    
     if (data.has_password) {
         // Zeige Passwort-Modal
         pendingJoinGameId = data.game_id;
-        joinGameName.textContent = `Beitritt zu: ${data.name}`;
+        joinGameName.textContent = `Beitritt zu: ${data.name}${data.started ? ' (läuft bereits)' : ''}`;
         joinPasswordGroup.style.display = 'block';
         joinPasswordInput.value = '';
         showScreen(lobbyScreen); // Zeige Lobby im Hintergrund
@@ -376,18 +511,55 @@ socket.on('game_joined', (data) => {
     currentGameId = data.game_id;
     currentGameCreator = data.game.creator;
     isCreator = (data.game.creator === currentUsername);
+    
+    // Speichere Player-Status
+    if (data.player_statuses) {
+        playerStatuses = data.player_statuses;
+    }
+    
     updateGameRoom(data.game);
     showScreen(gameScreen);
-    showNotification('Spiel beigetreten!', 'success');
+    
+    if (data.game.started) {
+        showNotification('Spiel beigetreten! Du spielst ab der nächsten Runde mit.', 'success');
+    } else {
+        showNotification('Spiel beigetreten!', 'success');
+    }
+    
     clearUrlParams(); // Entferne Join-Parameter aus URL
 });
 
 socket.on('player_joined', (data) => {
+    // Set new player as connected
+    playerStatuses[data.username] = 'connected';
     showNotification(`${data.username} ist beigetreten`, 'info');
     updatePlayersList(data.players, currentGameCreator);
 });
 
+socket.on('player_status_changed', (data) => {
+    // Update player status
+    playerStatuses[data.username] = data.status;
+    // Refresh players list using current DOM state
+    const players = Array.from(document.querySelectorAll('.player-item')).map(item => {
+        const text = item.querySelector('span:first-child').textContent;
+        return text.replace(' (Du)', '').replace(/[●⏳]\s*/, '').trim();
+    });
+    updatePlayersList(players, currentGameCreator);
+});
+
+socket.on('kicked_from_game', (data) => {
+    showNotification(data.message, 'error');
+    currentGameId = null;
+    currentGameCreator = null;
+    isCreator = false;
+    playerStatuses = {};
+    showScreen(lobbyScreen);
+    socket.emit('get_public_games');
+});
+
 socket.on('player_left', (data) => {
+    // Remove player from statuses
+    delete playerStatuses[data.username];
     showNotification(`${data.username} hat das Spiel verlassen`, 'info');
     currentGameCreator = data.creator; // Aktualisiere Creator (könnte sich geändert haben)
     updatePlayersList(data.players, data.creator);
@@ -497,9 +669,28 @@ function updatePlayersList(players, creator) {
         if (player === currentUsername) {
             item.classList.add('current-player');
         }
+        
+        // Status-Indikator
+        const status = playerStatuses[player] || 'connected';
+        let statusIcon = '';
+        if (status === 'disconnecting') {
+            statusIcon = '<span class="status-indicator disconnecting" title="Verbindung unterbrochen...">⏳</span>';
+        } else if (status === 'connected') {
+            statusIcon = '<span class="status-indicator connected" title="Verbunden">●</span>';
+        }
+        
+        // Kick-Button für Creator (nur wenn nicht selbst und nicht gestartet)
+        let kickButton = '';
+        if (isCreator && player !== currentUsername && currentGameCreator === currentUsername) {
+            kickButton = `<button class="btn-kick" onclick="kickPlayer('${escapeHtml(player).replace(/'/g, "\\'")}')">Kick</button>`;
+        }
+        
         item.innerHTML = `
-            <span>${escapeHtml(player)}${player === currentUsername ? ' (Du)' : ''}</span>
-            ${creator && player === creator ? '<span class="crown">👑</span>' : ''}
+            <span>${statusIcon} ${escapeHtml(player)}${player === currentUsername ? ' (Du)' : ''}</span>
+            <span class="player-actions">
+                ${creator && player === creator ? '<span class="crown">👑</span>' : ''}
+                ${kickButton}
+            </span>
         `;
         playersListDiv.appendChild(item);
     });
@@ -510,6 +701,13 @@ copyLinkBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(joinLinkInput.value);
     showNotification('Link kopiert!', 'success');
 });
+
+// Kick Player Function
+function kickPlayer(username) {
+    if (confirm(`Möchtest du ${username} wirklich aus dem Spiel entfernen?`)) {
+        socket.emit('kick_player', { username: username });
+    }
+}
 
 // Settings auto-save
 let settingsTimeout = null;
@@ -572,8 +770,6 @@ let currentHand = [];
 let selectedCards = [];
 let currentQuestion = null;
 let isCzar = false;
-let roundTimer = null;
-let timerInterval = null;
 
 // Game Play Elements
 const czarInfo = document.getElementById('czar-info');
@@ -611,6 +807,11 @@ socket.on('round_started', (data) => {
     isCzar = data.is_czar;
     selectedCards = [];
     
+    // Zeige Czar Info und Question Card wieder (falls nach game_ended ausgeblendet)
+    czarInfo.style.display = 'block';
+    document.querySelector('.question-card').style.display = 'block';
+    scoresPanel.style.display = 'flex';
+    
     // Update UI
     czarText.textContent = data.is_czar ? 
         'Du bist der Card Czar dieser Runde!' : 
@@ -624,10 +825,11 @@ socket.on('round_started', (data) => {
     // Hide all phases ZUERST
     hideAllPhases();
     
-    // Starte Timer basierend auf Spieleinstellungen (für ALLE sichtbar)
-    const answerTime = data.answer_time || 60;
+    // Timer anzeigen und initial setzen
     timerDisplay.style.display = 'block';
-    startRoundTimer(answerTime);
+    if (data.answer_time) {
+        updateTimerDisplay(data.answer_time);
+    }
     
     if (isCzar) {
         // Card Czar wartet - Timer sichtbar
@@ -642,16 +844,14 @@ socket.on('round_started', (data) => {
     }
 });
 
-let timerEndTime = null;
-
-function startRoundTimer(seconds) {
-    console.log('Starte Timer für', seconds, 'Sekunden');
-    // Kein lokales Interval mehr - nur Server-Updates
-    timerEndTime = Date.now() + (seconds * 1000);
-    updateTimerDisplay(seconds);
-}
-
 function updateTimerDisplay(timeLeft) {
+    // Timer ausblenden bei -1
+    if (timeLeft < 0) {
+        timerDisplay.style.display = 'none';
+        return;
+    }
+    
+    timerDisplay.style.display = 'block';
     timerDisplay.textContent = `⏱️ ${timeLeft}s`;
     
     if (timeLeft <= 10) {
@@ -666,15 +866,10 @@ socket.on('timer_sync', (data) => {
     // Aktualisiere Display direkt mit Server-Zeit
     if (data.time_left !== undefined) {
         updateTimerDisplay(data.time_left);
-        timerEndTime = Date.now() + (data.time_left * 1000);
     }
 });
 
-function stopTimer() {
-    // Timer läuft nur über Server-Updates, nichts zu stoppen
-    timerEndTime = null;
-    timerDisplay.style.color = '';
-}
+
 
 function hideAllPhases() {
     // Stop countdowns
@@ -687,6 +882,13 @@ function hideAllPhases() {
     czarWaitingPhase.style.display = 'none';
     votingPhase.style.display = 'none';
     waitingVotePhase.style.display = 'none';
+    
+    // Leere alte Voting-Optionen
+    answerOptions.innerHTML = '';
+    const waitingAnswerOptions = document.getElementById('waiting-answer-options');
+    if (waitingAnswerOptions) {
+        waitingAnswerOptions.innerHTML = '';
+    }
     resultPhase.style.display = 'none';
     gameEndPhase.style.display = 'none';
 }
@@ -755,7 +957,6 @@ function toggleCardSelection(index, cardEl) {
 }
 
 function updateSelectionUI() {
-    stopTimer();
     selectionCount.textContent = selectedCards.length;
     submitAnswersBtn.disabled = selectedCards.length !== currentQuestion.num_blanks;
     
@@ -788,26 +989,29 @@ socket.on('player_submitted', (data) => {
 socket.on('voting_phase', (data) => {
     hideAllPhases();
     
-    // Starte Timer für Card Czar
-    if (data.czar_time) {
-        timerDisplay.style.display = 'block';
-        startRoundTimer(data.czar_time);
-    }
+    // Timer wird vom Server via timer_sync gesetzt
+    timerDisplay.style.display = 'block';
     
     if (isCzar) {
         votingPhase.style.display = 'block';
-        displayAnswerOptions(data.answer_options);
+        displayAnswerOptions(data.answer_options, true);
     } else {
         waitingVotePhase.style.display = 'block';
+        // Zeige Antworten auch für Nicht-Czar Spieler (read-only)
+        displayAnswerOptions(data.answer_options, false);
     }
 });
 
-function displayAnswerOptions(options) {
-    answerOptions.innerHTML = '';
+function displayAnswerOptions(options, interactive = true) {
+    const container = interactive ? answerOptions : document.getElementById('waiting-answer-options');
+    container.innerHTML = '';
     
     options.forEach((option, index) => {
         const optionEl = document.createElement('div');
         optionEl.className = 'answer-option';
+        if (!interactive) {
+            optionEl.classList.add('readonly');
+        }
         
         const answerText = currentQuestion.card_text;
         let filledText = answerText;
@@ -817,9 +1021,12 @@ function displayAnswerOptions(options) {
         });
         
         optionEl.innerHTML = `<div class="answer-text">${filledText}</div>`;
-        optionEl.addEventListener('click', () => selectWinner(index, optionEl));
         
-        answerOptions.appendChild(optionEl);
+        if (interactive) {
+            optionEl.addEventListener('click', () => selectWinner(index, optionEl));
+        }
+        
+        container.appendChild(optionEl);
     });
 }
 
@@ -833,8 +1040,6 @@ function selectWinner(index, optionEl) {
     optionEl.classList.add('selected-winner');
     
     // Stoppe Timer sofort wenn Czar auswählt
-    stopTimer();
-    timerDisplay.style.display = 'none';
     
     socket.emit('vote_winner', { winner_index: index });
 }
@@ -843,7 +1048,6 @@ function selectWinner(index, optionEl) {
 let nextRoundCountdown = null;
 
 socket.on('round_result', (data) => {
-    stopTimer();
     timerDisplay.style.display = 'none';
     hideAllPhases();
     resultPhase.style.display = 'block';
@@ -866,10 +1070,18 @@ socket.on('round_result', (data) => {
         resultAnswers.style.display = 'none';
     }
     
-    roundWinner.textContent = data.winner;
-    updateScores(data.scores);
+    // Handle disconnected winner
+    if (data.winner === null && data.disconnected_player) {
+        roundWinner.textContent = `${data.disconnected_player} (hat das Spiel verlassen)`;
+        showNotification(`${data.disconnected_player} wurde gew\u00e4hlt, hat aber das Spiel verlassen - kein Punkt vergeben`, 'info');
+    } else if (data.winner) {
+        roundWinner.textContent = data.winner;
+        showNotification(`${data.winner} gewinnt diese Runde!`, 'success');
+    } else {
+        roundWinner.textContent = 'Kein Gewinner';
+    }
     
-    showNotification(`${data.winner} gewinnt diese Runde!`, 'success');
+    updateScores(data.scores);
     
     // Starte Countdown
     const countdownEl = document.getElementById('countdown-timer');
@@ -896,6 +1108,37 @@ socket.on('game_ended', (data) => {
     gameEndPhase.style.display = 'block';
     gameWinner.textContent = data.winner;
     
+    // Blende Czar Info, Frage-Karte und Scores-Panel aus
+    czarInfo.style.display = 'none';
+    document.querySelector('.question-card').style.display = 'none';
+    scoresPanel.style.display = 'none';
+    
+    // Zeige letzte Frage mit gewinnenden Antworten
+    if (data.last_question && data.winner_answers) {
+        const endQuestion = document.getElementById('end-question');
+        if (endQuestion) {
+            let questionText = data.last_question.card_text;
+            // Ersetze Blanks durch gewinnende Antworten
+            data.winner_answers.forEach(answer => {
+                questionText = questionText.replace('_____', `<strong>${escapeHtml(answer)}</strong>`);
+            });
+            endQuestion.innerHTML = questionText;
+        }
+    } else if (data.last_question) {
+        // Fallback: Zeige Frage ohne Antworten falls keine vorhanden
+        const endQuestion = document.getElementById('end-question');
+        if (endQuestion) {
+            endQuestion.innerHTML = data.last_question.card_text.replace(/_____/g, '<span class="blank">_____</span>');
+        }
+    }
+    
+    
+    // Zeige auch die aktuelle Scoreboard-Ansicht (nicht nur Endstand)
+    if (data.final_scores) {
+        updateScores(data.final_scores);
+    }
+    
+    // Zeige Endstand sortiert
     finalScores.innerHTML = '';
     const sortedScores = Object.entries(data.final_scores).sort((a, b) => b[1] - a[1]);
     
@@ -955,6 +1198,12 @@ socket.on('game_reset_to_lobby', (data) => {
     settingsPanel.style.display = 'block';
     gamePlayPanel.style.display = 'none';
     pauseOverlay.style.display = 'none';
+    
+    // Zeige Czar Info, Question Card und Scores-Panel wieder
+    czarInfo.style.display = 'block';
+    document.querySelector('.question-card').style.display = 'block';
+    scoresPanel.style.display = 'flex';
+    
     updateGameRoom(data.game);
     showNotification('Spiel wurde zurückgesetzt', 'info');
 });
@@ -964,6 +1213,11 @@ backToLobbyBtn.addEventListener('click', () => {
     settingsPanel.style.display = 'block';
     gamePlayPanel.style.display = 'none';
     hideAllPhases();
+    
+    // Zeige Czar Info, Question Card und Scores-Panel wieder
+    czarInfo.style.display = 'block';
+    document.querySelector('.question-card').style.display = 'block';
+    scoresPanel.style.display = 'flex';
 });
 
 // Error handling

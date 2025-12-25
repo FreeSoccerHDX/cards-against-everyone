@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# Verhindere Python Output Buffering
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 COPY requirements.txt .

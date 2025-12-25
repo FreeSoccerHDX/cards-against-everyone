@@ -331,6 +331,41 @@ button {
     font-size: 18px;
 }
 
+.player-item .player-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 14px;
+}
+
+.status-indicator.connected {
+    color: #4caf50;
+}
+
+.status-indicator.disconnecting {
+    color: #ff9800;
+}
+
+.btn-kick {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-kick:hover {
+    background: #d32f2f;
+}
+
 .game-link {
     margin-top: 20px;
 }

@@ -212,6 +212,7 @@
                                 <div class="waiting-message">
                                     <h3>Warte auf die Entscheidung des Card Czars...</h3>
                                 </div>
+                                <div id="waiting-answer-options" class="answer-options readonly"></div>
                             </div>
 
                             <!-- Runden-Ergebnis -->
@@ -231,7 +232,17 @@
                                 <div class="game-end-banner">
                                     <h1>🎉 SPIEL VORBEI! 🎉</h1>
                                     <h2><span id="game-winner"></span> hat gewonnen!</h2>
+                                    
+                                    <!-- Letzte Frage und Czar -->
+                                    <div class="last-round-info" style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                                        <p style="margin-bottom: 10px;"><strong>Letzte Frage:</strong></p>
+                                        <div id="end-question" style="font-size: 1.1em; margin-bottom: 10px;"></div>
+                                    </div>
+                                    
+                                    <!-- Endstand -->
+                                    <h3 style="margin-top: 20px;">Endstand:</h3>
                                     <div id="final-scores"></div>
+                                    
                                     <button id="back-to-lobby-btn" class="btn-primary btn-large">Zurück zur Lobby</button>
                                 </div>
                             </div>
