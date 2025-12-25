@@ -604,6 +604,16 @@ button {
     }
 }
 
+@keyframes cardFlip {
+    0% { transform: rotate(0deg); }
+    10% { transform: rotate(-4deg); }
+    30% { transform: rotate(4deg); }
+    50% { transform: rotate(-4deg); }
+    70% { transform: rotate(4deg); }
+    90% { transform: rotate(-4deg); }
+    100% { transform: rotate(0deg); }
+}
+
 .timer-text.danger {
     animation: timerPulse 0.5s ease-in-out infinite;
     color: #f44336;
@@ -786,6 +796,10 @@ button {
     color: #333;
     margin-bottom: 15px;
     line-height: 1.5;
+}
+
+.result-question.winner-flip {
+    animation: cardFlip 1.2s ease-in-out;
 }
 
 .result-question .filled-answer,

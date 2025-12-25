@@ -194,6 +194,7 @@ def process_winner_selection(game_id, winner_index):
     socketio.emit('round_result', {
         'winner': winner,
         'winner_answers': winner_answers,
+        'winner_index': winner_index,
         'question': state['current_question'],
         'scores': state['player_scores'],
         'next_round_in': round_delay

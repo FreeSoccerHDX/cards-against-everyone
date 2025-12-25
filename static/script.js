@@ -833,6 +833,12 @@ socket.on('round_started', (data) => {
     isCzar = data.is_czar;
     selectedCards = [];
     
+    // Entferne Animation von vorheriger Runde
+    const resultQuestion = document.getElementById('result-question');
+    if (resultQuestion) {
+        resultQuestion.classList.remove('winner-flip');
+    }
+    
     // Zeige Czar Info und Question Card wieder (falls nach game_ended ausgeblendet)
     czarInfo.style.display = 'block';
     document.querySelector('.question-card').style.display = 'block';
@@ -1118,8 +1124,12 @@ function selectWinner(index, optionEl) {
         return;
     }
     
-    document.querySelectorAll('.answer-option').forEach(el => el.classList.remove('selected-winner'));
+    document.querySelectorAll('.answer-option').forEach(el => {
+        el.classList.remove('selected-winner');
+        el.classList.remove('winner-flip');
+    });
     optionEl.classList.add('selected-winner');
+    optionEl.classList.add('winner-flip');
     
     // Stoppe Timer sofort wenn Czar auswählt
     
@@ -1130,6 +1140,11 @@ function selectWinner(index, optionEl) {
 let nextRoundCountdown = null;
 
 socket.on('round_result', (data) => {
+    // Zeige direkt Result-Phase mit Animation
+    showResultPhase(data);
+});
+
+function showResultPhase(data) {
     timerDisplay.style.display = 'none';
     hideAllPhases();
     resultPhase.style.display = 'block';
@@ -1145,6 +1160,9 @@ socket.on('round_result', (data) => {
             questionText = questionText.replace('_____', `<strong class="filled-answer">${answer}</strong>`);
         });
         resultQuestion.innerHTML = questionText;
+        
+        // Triggere Schaukel-Animation
+        resultQuestion.classList.add('winner-flip');
     }
     
     // Verstecke separaten Antworten-Bereich (Antworten sind jetzt in der Frage)
@@ -1182,7 +1200,7 @@ socket.on('round_result', (data) => {
             clearInterval(nextRoundCountdown);
         }
     }, 1000);
-});
+}
 
 // Game Ended
 socket.on('game_ended', (data) => {
