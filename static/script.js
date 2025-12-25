@@ -353,8 +353,8 @@ socket.on('reconnected', (data) => {
 });
 
 // Logout
-logoutBtn.addEventListener('click', () => {
-    if (confirm('Möchtest du dich wirklich abmelden?')) {
+logoutBtn.addEventListener('click', async () => {
+    if (await customConfirm('Möchtest du dich wirklich abmelden?', 'Abmelden')) {
         // Lösche gespeicherten Username
         clearSavedUsername();
         
@@ -578,14 +578,14 @@ resumeGameBtn.addEventListener('click', () => {
     socket.emit('resume_game');
 });
 
-resetLobbyBtn.addEventListener('click', () => {
-    if (confirm('Spiel für alle zurücksetzen?')) {
+resetLobbyBtn.addEventListener('click', async () => {
+    if (await customConfirm('Alle Spielfortschritte werden gelöscht und das Spiel wird in die Lobby zurückgesetzt.', 'Spiel zurücksetzen?')) {
         socket.emit('reset_to_lobby');
     }
 });
 
-leaveGameBtn.addEventListener('click', () => {
-    if (confirm('Möchtest du wirklich zur Lobby zurückkehren?')) {
+leaveGameBtn.addEventListener('click', async () => {
+    if (await customConfirm('Möchtest du wirklich zur Lobby zurückkehren?', 'Spiel verlassen')) {
         socket.emit('leave_game');
     }
 });
@@ -703,8 +703,8 @@ copyLinkBtn.addEventListener('click', () => {
 });
 
 // Kick Player Function
-function kickPlayer(username) {
-    if (confirm(`Möchtest du ${username} wirklich aus dem Spiel entfernen?`)) {
+async function kickPlayer(username) {
+    if (await customConfirm(`${username} wird aus dem Spiel entfernt und kann nicht mehr zurückkehren.`, `Spieler ${username} entfernen?`)) {
         socket.emit('kick_player', { username: username });
     }
 }

@@ -17,6 +17,8 @@ body {
     padding: 20px;
 }
 
+
+
 .screen.active {
     display: flex;
     align-items: start;
@@ -33,6 +35,10 @@ body {
     padding: 40px;
 }
 @media (max-width: 768px) {
+    .screen {
+        padding: 10px;
+    }
+    
     .container {
         padding: 10px;
     }

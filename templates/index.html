@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cards Against Everyone</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom-confirm.css') }}">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
@@ -255,6 +256,25 @@
 
     <div id="notification" class="notification"></div>
 
+    <!-- Custom Confirm Dialog -->
+    <div id="custom-confirm-overlay" class="custom-confirm-overlay">
+        <div class="custom-confirm-dialog">
+            <div class="custom-confirm-icon">
+                <svg width="60" height="60" viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="28" fill="none" stroke="#f39c12" stroke-width="3"/>
+                    <text x="30" y="42" font-size="40" text-anchor="middle" fill="#f39c12">!</text>
+                </svg>
+            </div>
+            <h3 id="custom-confirm-title" class="custom-confirm-title"></h3>
+            <p id="custom-confirm-message" class="custom-confirm-message"></p>
+            <div class="custom-confirm-buttons">
+                <button id="custom-confirm-cancel" class="btn-secondary">Abbrechen</button>
+                <button id="custom-confirm-ok" class="btn-danger">Bestätigen</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='custom-confirm.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
