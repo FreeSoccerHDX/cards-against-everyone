@@ -17,8 +17,6 @@ body {
     padding: 20px;
 }
 
-
-
 .screen.active {
     display: flex;
     align-items: start;
@@ -31,18 +29,9 @@ body {
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     max-width: 1200px;
     width: 100%;
-
     padding: 40px;
 }
-@media (max-width: 768px) {
-    .screen {
-        padding: 10px;
-    }
-    
-    .container {
-        padding: 10px;
-    }
-}
+
 
 #username-screen .container {
     max-width: 500px;
@@ -59,6 +48,10 @@ h2 {
     color: #555;
     margin-bottom: 20px;
     font-size: 1.5em;
+}
+
+.waiting-message h3 {
+    color: #667eea;
 }
 
 /* Username Form */
@@ -99,7 +92,6 @@ button {
 
 .btn-primary:hover {
     background: #5568d3;
-    transform: translateY(-2px);
 }
 
 .btn-secondary {
@@ -120,6 +112,11 @@ button {
     background: #da190b;
 }
 
+.btn-primary:hover,
+.btn-logout:hover {
+    transform: translateY(-2px);
+}
+
 .btn-large {
     font-size: 20px;
     padding: 18px 36px;
@@ -132,8 +129,7 @@ button {
     position: relative;
     overflow: hidden;
     display: block;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 20px auto 0;
 }
 
 #submit-answers-btn.submit-incomplete {
@@ -141,11 +137,6 @@ button {
     color: #ecf0f1;
     cursor: not-allowed;
     opacity: 0.7;
-}
-
-#submit-answers-btn.submit-incomplete:hover {
-    background: #95a5a6;
-    transform: none;
 }
 
 #submit-answers-btn.submit-complete {
@@ -200,11 +191,24 @@ button {
 }
 
 /* Lobby */
-.lobby-actions {
+.lobby-actions,
+.modal-actions {
     display: flex;
     gap: 15px;
+}
+
+.lobby-actions {
     margin-bottom: 30px;
     flex-wrap: wrap;
+}
+
+.modal-actions {
+    margin-top: 25px;
+    flex-wrap: nowrap;
+}
+
+.modal-actions button {
+    flex: 1;
 }
 
 .games-list {
@@ -285,26 +289,21 @@ button {
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
-.modal-actions {
-    display: flex;
-    gap: 15px;
-    margin-top: 25px;
-}
-
-.modal-actions button {
-    flex: 1;
-}
-
 /* Forms */
 .form-group {
     margin-bottom: 20px;
 }
 
-.form-group label {
+.form-group label,
+.game-link label {
     display: block;
     margin-bottom: 8px;
     color: #555;
     font-weight: 600;
+}
+
+.game-link label {
+    font-size: 14px;
 }
 
 .form-group input[type="text"],
@@ -318,6 +317,7 @@ button {
     transition: border-color 0.3s;
 }
 
+#username-input:focus,
 .form-group input:focus {
     outline: none;
     border-color: #667eea;
@@ -425,14 +425,6 @@ button {
 
 .game-link {
     margin-top: 20px;
-}
-
-.game-link label {
-    display: block;
-    margin-bottom: 8px;
-    color: #555;
-    font-weight: 600;
-    font-size: 14px;
 }
 
 .game-link input {
@@ -665,10 +657,6 @@ button {
     padding: 20px;
 }
 
-.waiting-message h3 {
-    color: #667eea;
-}
-
 .waiting-message p {
     color: #666;
     font-size: 18px;
@@ -817,6 +805,14 @@ button {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .screen {
+        padding: 10px;
+    }
+    
+    .container {
+        padding: 10px;
+    }
+
     .game-content {
         grid-template-columns: 1fr;
     }
