@@ -692,6 +692,10 @@ function updatePlayersList(players, creator) {
                 ${kickButton}
             </span>
         `;
+        
+        // Wende Spielerfarbe an
+        applyPlayerColor(item, player);
+        
         playersListDiv.appendChild(item);
     });
 }
@@ -944,6 +948,10 @@ function updateScores(scores) {
             <span class="score-name">${escapeHtml(player)}</span>
             <span class="score-value">${score}</span>
         `;
+        
+        // Wende Spielerfarbe an
+        applyPlayerColor(item, player);
+        
         scoresPanel.appendChild(item);
     }
 }
@@ -1201,6 +1209,10 @@ socket.on('game_ended', (data) => {
             <span>${index + 1}. ${escapeHtml(player)}</span>
             <span>${score} Punkte</span>
         `;
+        
+        // Wende Spielerfarbe an
+        applyPlayerColor(item, player);
+        
         finalScores.appendChild(item);
     });
     
@@ -1230,6 +1242,9 @@ function displayRoundHistory(history) {
             filledQuestion = filledQuestion.replace('_____', `<span class="filled-answer">${escapeHtml(answer)}</span>`);
         });
         
+        const czarColors = generatePlayerColor(round.czar);
+        const winnerColors = generatePlayerColor(round.winner);
+        
         card.innerHTML = `
             <div class="history-card-header">
                 <span class="round-number">Runde ${round.round_num}</span>
@@ -1240,11 +1255,11 @@ function displayRoundHistory(history) {
             <div class="history-meta">
                 <div class="history-meta-item">
                     <span>👑</span>
-                    <span><strong>${escapeHtml(round.czar)}</strong></span>
+                    <span class="player-badge" style="background-color: ${czarColors.bgColor}; color: ${czarColors.textColor};"><strong>${escapeHtml(round.czar)}</strong></span>
                 </div>
                 <div class="history-meta-item">
                     <span>🏆</span>
-                    <span><strong>${escapeHtml(round.winner)}</strong></span>
+                    <span class="player-badge" style="background-color: ${winnerColors.bgColor}; color: ${winnerColors.textColor};"><strong>${escapeHtml(round.winner)}</strong></span>
                 </div>
             </div>
         `;

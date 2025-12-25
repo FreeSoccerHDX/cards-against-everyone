@@ -166,7 +166,7 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     flex-wrap: wrap;
     gap: 15px;
 }
@@ -674,8 +674,8 @@ button {
     background: white;
     border: 3px solid #e0e0e0;
     border-radius: 10px;
-    padding: 20px;
-    min-height: 150px;
+    padding: 10px;
+    min-height: 100px;
     cursor: pointer;
     transition: all 0.3s;
     display: flex;
@@ -896,7 +896,7 @@ button {
     .question-card {
         font-size: 16px;
         padding: 20px;
-        padding-top: 30px;
+        padding-top: 10px;
         padding-bottom: 70px;
         min-height: 120px;
     }
