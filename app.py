@@ -1138,5 +1138,5 @@ def handle_reset_to_lobby():
 
 if __name__ == '__main__':
     print("Starte Server...", flush=True)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=False)
 
