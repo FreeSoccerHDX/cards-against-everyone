@@ -596,6 +596,45 @@ def get_public_games():
             })
     return public_games
 
+@socketio.on('get_game_state')
+def handle_get_game_state():
+    """Sendet den aktuellen Spielzustand an den anfragenden Client"""
+    username = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            username = user
+            break
+    
+    if not username:
+        return
+    
+    game_id = users[username].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    
+    # Sammle Player-Status-Infos
+    player_statuses = {}
+    for player in game['players']:
+        if player in users:
+            player_statuses[player] = users[player].get('status', 'connected')
+        else:
+            player_statuses[player] = 'disconnected'
+    
+    spectator_statuses = {}
+    for spectator in game.get('spectators', []):
+        if spectator in users:
+            spectator_statuses[spectator] = users[spectator].get('status', 'connected')
+        else:
+            spectator_statuses[spectator] = 'disconnected'
+    
+    emit('game_state_update', {
+        'game': game,
+        'player_statuses': player_statuses,
+        'spectator_statuses': spectator_statuses
+    })
+
 @socketio.on('join_game')
 def handle_join_game(data):
     username = None
@@ -674,7 +713,8 @@ def handle_join_game(data):
         'username': username,
         'is_spectator': is_spectator,
         'players': game['players'],
-        'spectators': game['spectators']
+        'spectators': game['spectators'],
+        'creator': game['creator']
     }, room=game_id, include_self=False)
     
     # Aktualisiere Lobby
