@@ -958,7 +958,21 @@ function toggleCardSelection(index, cardEl) {
 
 function updateSelectionUI() {
     selectionCount.textContent = selectedCards.length;
-    submitAnswersBtn.disabled = selectedCards.length !== currentQuestion.num_blanks;
+    const isComplete = selectedCards.length === currentQuestion.num_blanks;
+    submitAnswersBtn.disabled = !isComplete;
+    
+    // Update button text with count and icon
+    const icon = isComplete ? '✓' : '✗';
+    submitAnswersBtn.textContent = `${icon} Abgabe (${selectedCards.length}/${currentQuestion.num_blanks})`;
+    
+    // Update button class based on completion
+    if (isComplete) {
+        submitAnswersBtn.classList.add('submit-complete');
+        submitAnswersBtn.classList.remove('submit-incomplete');
+    } else {
+        submitAnswersBtn.classList.add('submit-incomplete');
+        submitAnswersBtn.classList.remove('submit-complete');
+    }
     
     // Update numbers on selected cards
     document.querySelectorAll('.answer-card.selected').forEach(card => {

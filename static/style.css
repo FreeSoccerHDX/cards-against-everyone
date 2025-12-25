@@ -19,7 +19,7 @@ body {
 
 .screen.active {
     display: flex;
-    align-items: center;
+    align-items: start;
     justify-content: center;
 }
 
@@ -118,6 +118,50 @@ button {
     font-size: 20px;
     padding: 18px 36px;
     margin-top: 20px;
+}
+
+#submit-answers-btn {
+    font-weight: bold;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#submit-answers-btn.submit-incomplete {
+    background: #95a5a6;
+    color: #ecf0f1;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+#submit-answers-btn.submit-incomplete:hover {
+    background: #95a5a6;
+    transform: none;
+}
+
+#submit-answers-btn.submit-complete {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+#submit-answers-btn.submit-complete:hover {
+    background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+    transform: translateY(-2px);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
+    }
+    50% {
+        box-shadow: 0 4px 25px rgba(39, 174, 96, 0.7);
+    }
 }
 
 /* Header */
@@ -612,12 +656,11 @@ button {
 
 .waiting-message {
     text-align: center;
-    padding: 60px 20px;
+    padding: 20px;
 }
 
 .waiting-message h3 {
     color: #667eea;
-    margin-bottom: 15px;
 }
 
 .waiting-message p {
