@@ -6,6 +6,7 @@
     <title>Cards Against Everyone</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='custom-confirm.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='round-history.css') }}">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
@@ -189,6 +190,7 @@
                             </div>
 
                             <!-- Punkte -->
+                            <div id="win-score-label" class="win-score-label"></div>
                             <div id="scores-panel" class="scores-panel defaultpanel"></div>
 
                             <!-- Antwort-Phase: Spieler wählt Karten -->
@@ -251,6 +253,12 @@
                                     <!-- Endstand -->
                                     <h3 style="margin-top: 20px;">Endstand:</h3>
                                     <div id="final-scores"></div>
+                                    
+                                    <!-- Round History -->
+                                    <div id="round-history-section" style="margin-top: 40px;">
+                                        <h3 style="margin-bottom: 20px;">Spielverlauf</h3>
+                                        <div id="round-history-container" class="round-history-container"></div>
+                                    </div>
                                     
                                     <button id="back-to-lobby-btn" class="btn-primary btn-large">Zurück zur Lobby</button>
                                 </div>

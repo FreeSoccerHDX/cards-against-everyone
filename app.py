@@ -178,6 +178,17 @@ def process_winner_selection(game_id, winner_index):
     # Punkt vergeben
     state['player_scores'][winner] += 1
     
+    # Speichere Runde in History
+    czar = state['active_players'][state['current_czar_index']]
+    round_number = len(state['round_history']) + 1
+    state['round_history'].append({
+        'round_num': round_number,
+        'question': state['current_question'],
+        'czar': czar,
+        'winner': winner,
+        'winner_answers': winner_answers
+    })
+    
     # Zeige Rundenergebnis
     round_delay = game['settings'].get('round_delay', 5)
     socketio.emit('round_result', {
@@ -772,7 +783,8 @@ def init_game_state(game):
         'round_phase': 'waiting',  # waiting, answering, voting, result
         'timer': -1,  # Aktueller Timer-Wert, -1 = ausgeblendet
         'paused': False,  # Spiel pausiert
-        'active_players': []  # Spieler die in der aktuellen Runde aktiv sind
+        'active_players': [],  # Spieler die in der aktuellen Runde aktiv sind
+        'round_history': []  # History aller Runden: [{round_num, question, czar, winner, winner_answers}]
     }
 
 def start_new_round(game_id):
@@ -813,7 +825,8 @@ def start_new_round(game_id):
             'hand': state['player_hands'].get(player, []),
             'scores': state['player_scores'],
             'is_czar': player == czar,
-            'answer_time': answer_time
+            'answer_time': answer_time,
+            'win_score': game['settings'].get('win_score', 10)
         }
         
         # Finde SID des Spielers
@@ -1026,7 +1039,8 @@ def end_game(game_id, winner):
         'final_scores': state['player_scores'],
         'last_question': state.get('current_question'),
         'last_czar': state['active_players'][state['current_czar_index']] if state.get('active_players') else None,
-        'winner_answers': winner_answers
+        'winner_answers': winner_answers,
+        'round_history': state.get('round_history', [])
     }, room=game_id)
     
     # Reset Spiel

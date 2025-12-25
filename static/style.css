@@ -609,6 +609,15 @@ button {
     color: #f44336;
 }
 
+.win-score-label {
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 5px;
+    font-weight: 500;
+    display: none;
+}
+
 .scores-panel {
     display: flex;
     gap: 15px;
@@ -779,12 +788,19 @@ button {
     line-height: 1.5;
 }
 
-.result-question .filled-answer {
+.result-question .filled-answer,
+#end-question .filled-answer {
     color: #667eea;
     background: rgba(102, 126, 234, 0.1);
-    padding: 4px 4px;
+    padding: 4px 8px;
     border-radius: 4px;
     font-weight: bold;
+}
+
+#end-question .filled-answer {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.2);
+    font-size: 1.15em;
 }
 
 .result-answers {

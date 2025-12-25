@@ -777,6 +777,7 @@ const czarText = document.getElementById('czar-text');
 const questionText = document.getElementById('question-text');
 const timerDisplay = document.getElementById('timer-display');
 const scoresPanel = document.getElementById('scores-panel');
+const winScoreLabel = document.getElementById('win-score-label');
 
 const answerPhase = document.getElementById('answer-phase');
 const cardsNeeded = document.getElementById('cards-needed');
@@ -821,6 +822,12 @@ socket.on('round_started', (data) => {
     questionText.innerHTML = data.question.card_text.replace(/_____/g, '<span class="blank">_____</span>');
     
     updateScores(data.scores);
+    
+    // Zeige Ziel-Punktzahl
+    if (data.win_score && winScoreLabel) {
+        winScoreLabel.textContent = `Spiel bis ${data.win_score} Punkte`;
+        winScoreLabel.style.display = 'block';
+    }
     
     // Hide all phases ZUERST
     hideAllPhases();
@@ -1157,14 +1164,14 @@ socket.on('game_ended', (data) => {
     document.querySelector('.question-card').style.display = 'none';
     scoresPanel.style.display = 'none';
     
-    // Zeige letzte Frage mit gewinnenden Antworten
-    if (data.last_question && data.winner_answers) {
+    // Zeige letzte Frage mit gewinnenden Antworten ausgefüllt
+    if (data.last_question && data.winner_answers && data.winner_answers.length > 0) {
         const endQuestion = document.getElementById('end-question');
         if (endQuestion) {
             let questionText = data.last_question.card_text;
-            // Ersetze Blanks durch gewinnende Antworten
+            // Ersetze Blanks durch gewinnende Antworten mit Styling
             data.winner_answers.forEach(answer => {
-                questionText = questionText.replace('_____', `<strong>${escapeHtml(answer)}</strong>`);
+                questionText = questionText.replace('_____', `<span class="filled-answer">${escapeHtml(answer)}</span>`);
             });
             endQuestion.innerHTML = questionText;
         }
@@ -1196,7 +1203,55 @@ socket.on('game_ended', (data) => {
         `;
         finalScores.appendChild(item);
     });
+    
+    // Zeige Round History
+    displayRoundHistory(data.round_history || []);
 });
+
+function displayRoundHistory(history) {
+    const container = document.getElementById('round-history-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (history.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999;">Keine Runden gespielt</p>';
+        return;
+    }
+    
+    // Zeige Runden in umgekehrter Reihenfolge (neueste zuerst)
+    history.slice().reverse().forEach((round) => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        
+        // Fülle die Frage mit den gewinnenden Antworten
+        let filledQuestion = round.question.card_text;
+        round.winner_answers.forEach(answer => {
+            filledQuestion = filledQuestion.replace('_____', `<span class="filled-answer">${escapeHtml(answer)}</span>`);
+        });
+        
+        card.innerHTML = `
+            <div class="history-card-header">
+                <span class="round-number">Runde ${round.round_num}</span>
+            </div>
+            <div class="history-question-filled">
+                ${filledQuestion}
+            </div>
+            <div class="history-meta">
+                <div class="history-meta-item">
+                    <span>👑</span>
+                    <span><strong>${escapeHtml(round.czar)}</strong></span>
+                </div>
+                <div class="history-meta-item">
+                    <span>🏆</span>
+                    <span><strong>${escapeHtml(round.winner)}</strong></span>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(card);
+    });
+}
 
 // Pause/Resume Events
 socket.on('game_paused', (data) => {
