@@ -199,8 +199,11 @@ def process_winner_selection(game_id, winner_index):
         'next_round_in': round_delay
     }, room=game_id)
     
-    # Prüfe auf Spielende
-    if state['player_scores'][winner] >= game['settings']['win_score']:
+    # Prüfe auf Spielende (Punkte-Limit oder Runden-Limit erreicht)
+    max_rounds = game['settings'].get('max_rounds', 50)
+    rounds_played = len(state['round_history'])
+    
+    if state['player_scores'][winner] >= game['settings']['win_score'] or rounds_played >= max_rounds:
         # Spiel ist vorbei - zeige erst Rundenergebnis, dann nach Delay Spielende
         def show_game_end():
             socketio.sleep(float(round_delay))
@@ -485,6 +488,7 @@ def handle_create_game(data):
         'settings': {
             'max_cards': 7,
             'win_score': 10,
+            'max_rounds': 50,  # Maximum Anzahl Runden
             'answer_time': 60,  # Sekunden für automatische Abgabe
             'round_delay': 5,  # Sekunden zwischen Runden
             'czar_time': 30  # Sekunden für Card Czar Voting
@@ -846,7 +850,9 @@ def start_new_round(game_id):
             'scores': state['player_scores'],
             'is_czar': player == czar,
             'answer_time': answer_time,
-            'win_score': game['settings'].get('win_score', 10)
+            'win_score': game['settings'].get('win_score', 10),
+            'max_rounds': game['settings'].get('max_rounds', 50),
+            'current_round': len(state['round_history']) + 1
         }
         
         # Finde SID des Spielers

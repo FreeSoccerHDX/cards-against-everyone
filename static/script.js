@@ -48,6 +48,7 @@ const settingsPublic = document.getElementById('settings-public');
 const settingsPassword = document.getElementById('settings-password');
 const settingsMaxCards = document.getElementById('settings-max-cards');
 const settingsWinScore = document.getElementById('settings-win-score');
+const settingsMaxRounds = document.getElementById('settings-max-rounds');
 const settingsAnswerTime = document.getElementById('settings-answer-time');
 const settingsCzarTime = document.getElementById('settings-czar-time');
 const settingsRoundDelay = document.getElementById('settings-round-delay');
@@ -746,6 +747,7 @@ function autoSaveSettings() {
             settings: {
                 max_cards: parseInt(settingsMaxCards.value),
                 win_score: parseInt(settingsWinScore.value),
+                max_rounds: parseInt(settingsMaxRounds.value),
                 answer_time: parseInt(settingsAnswerTime.value),
                 czar_time: parseInt(settingsCzarTime.value),
                 round_delay: parseInt(settingsRoundDelay.value)
@@ -760,6 +762,7 @@ settingsPublic.addEventListener('change', autoSaveSettings);
 settingsPassword.addEventListener('input', autoSaveSettings);
 settingsMaxCards.addEventListener('input', autoSaveSettings);
 settingsWinScore.addEventListener('input', autoSaveSettings);
+settingsMaxRounds.addEventListener('input', autoSaveSettings);
 settingsAnswerTime.addEventListener('input', autoSaveSettings);
 settingsCzarTime.addEventListener('input', autoSaveSettings);
 settingsRoundDelay.addEventListener('input', autoSaveSettings);
@@ -845,9 +848,11 @@ socket.on('round_started', (data) => {
     
     updateScores(data.scores);
     
-    // Zeige Ziel-Punktzahl
+    // Zeige Ziel-Punktzahl und Runden-Info
     if (data.win_score && winScoreLabel) {
-        winScoreLabel.textContent = `Spiel bis ${data.win_score} Punkte`;
+        const maxRounds = data.max_rounds || 50;
+        const currentRound = data.current_round || 1;
+        winScoreLabel.textContent = `Spiel bis ${data.win_score} Punkte oder Runde ${currentRound}/${maxRounds}`;
         winScoreLabel.style.display = 'block';
     }
     
