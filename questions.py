@@ -5911,5 +5911,173 @@ CARDS_QUESTIONS = [
     {
         "card_text": "Was machen meine Eltern wohl gerade im Schlafzimmer _____?",
         "num_blanks": 1
+    },
+     {
+        "card_text": "______ hat alles nur schlimmer gemacht.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Niemand war vorbereitet auf ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "In der Schule hätte man mehr über ______ lernen sollen.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Meine Eltern wissen bis heute nichts von ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Der wahre Grund für meine Therapie ist ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Deutschland scheitert endgültig an ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Früher war alles besser, außer ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Niemand redet über ______, aber alle denken daran.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Das hat sogar den Sachbearbeiter überrascht: ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Die größte Lüge meiner Kindheit war ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Mein größter Fehler begann mit ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "______ ist der Grund, warum wir das Haus verkaufen mussten.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Das stand definitiv nicht im Beipackzettel von ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Die Lösung aller Probleme lautet überraschenderweise ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Niemand hat nach ______ gefragt, aber jetzt ist es da.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Das ist der Moment, in dem ______ Sinn ergab.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "______ war der Wendepunkt im Familienchat.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Der wahre Skandal wurde vertuscht durch ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Aus rechtlichen Gründen dürfen wir nicht über ______ sprechen.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Am Ende blieb nur noch ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Die Wissenschaft ist sich einig: ______ war ein Fehler.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "______ hat den Abend endgültig ruiniert.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Niemand hätte erwartet, dass es an ______ liegt.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Der Preis für die Wahrheit war ______.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "______ hätte niemals erlaubt werden dürfen.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "______ hat mehr Opfer gefordert als ______.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "Nach ______ war nichts mehr wie ______.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "Der Deal lautete: ______ gegen ______.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "Ausgerechnet ______ rettete uns vor ______.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "Die offizielle Erklärung: ______. Die Wahrheit: ______.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "______ war geplant, ______ war unvermeidlich.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "Zwischen ______ und ______ liegt nur ein Formular.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "Am Ende blieben ______, ______ und Scham.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "______ ist schlimmer als ______, sagt man.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "Wir opferten ______, um ______ zu retten.",
+        "num_blanks": 2
+    },
+    {
+        "card_text": "______ begann mit ______ und endete in ______.",
+        "num_blanks": 3
+    },
+    {
+        "card_text": "______ versprach ______, bekam aber ______.",
+        "num_blanks": 3
+    },
+    {
+        "card_text": "Erst ______, dann ______, dann ______.",
+        "num_blanks": 3
+    },
+    {
+        "card_text": "______ war kein Unfall.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "Für ______ gab es keine Entschuldigung.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "______ wurde aus dem Protokoll gestrichen.",
+        "num_blanks": 1
+    },
+    {
+        "card_text": "______ hat uns alle mitschuldig gemacht.",
+        "num_blanks": 1
     }
 ]
