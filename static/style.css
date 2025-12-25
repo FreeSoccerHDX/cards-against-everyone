@@ -383,6 +383,15 @@ button {
     background: linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 100%);
 }
 
+.player-item.spectator-item {
+    opacity: 0.85;
+    border-style: dashed;
+}
+
+.player-item.spectator-item.current-player {
+    border-style: dashed;
+}
+
 .player-item .crown {
     color: #ffd700;
     font-size: 18px;
@@ -421,6 +430,40 @@ button {
 
 .btn-kick:hover {
     background: #d32f2f;
+}
+
+.btn-toggle-role {
+    padding: 4px 8px;
+    font-size: 16px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    line-height: 1;
+}
+
+.btn-toggle-role:hover {
+    background: #5568d3;
+    transform: scale(1.1);
+}
+
+.btn-force-role {
+    padding: 4px 8px;
+    font-size: 14px;
+    background: #ff9800;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    line-height: 1;
+}
+
+.btn-force-role:hover {
+    background: #f57c00;
+    transform: scale(1.1);
 }
 
 .game-link {

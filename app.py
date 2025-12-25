@@ -225,6 +225,36 @@ def process_winner_selection(game_id, winner_index):
     
     socketio.start_background_task(next_round)
 
+def ensure_valid_creator(game_id):
+    """Stellt sicher, dass der Creator des Spiels noch existiert, ansonsten wird ein neuer gewählt"""
+    if game_id not in games:
+        return
+    
+    game = games[game_id]
+    creator = game.get('creator')
+    
+    # Prüfe ob Creator noch existiert und im Spiel ist
+    creator_exists = (
+        creator and 
+        creator in users and 
+        (creator in game['players'] or creator in game.get('spectators', []))
+    )
+    
+    if not creator_exists:
+        # Wähle neuen Creator
+        if game['players']:
+            game['creator'] = game['players'][0]
+        elif game.get('spectators'):
+            game['creator'] = game['spectators'][0]
+        else:
+            game['creator'] = None
+        
+        # Informiere alle im Raum über den neuen Creator
+        if game['creator']:
+            socketio.emit('creator_changed', {
+                'creator': game['creator']
+            }, room=game_id)
+
 def cleanup_user(username):
     """Entfernt Benutzer nach 30 Sekunden Inaktivität"""
     if username in users:
@@ -233,37 +263,46 @@ def cleanup_user(username):
             game = games[game_id]
             
             # Entferne Spieler aus dem Spiel
+            was_creator = game['creator'] == username
             if username in game['players']:
                 game['players'].remove(username)
+            if username in game.get('spectators', []):
+                game['spectators'].remove(username)
                 
-                # Entferne aus Game State (Scores, Hands, etc.)
-                if game.get('game_state'):
-                    state = game['game_state']
-                    if username in state.get('player_scores', {}):
-                        del state['player_scores'][username]
-                    if username in state.get('player_hands', {}):
-                        del state['player_hands'][username]
-                    if username in state.get('submitted_answers', {}):
-                        del state['submitted_answers'][username]
-                    if username in state.get('active_players', []):
-                        state['active_players'].remove(username)
-                
-                # Wenn Ersteller weg ist, neuen Ersteller bestimmen
-                if game['creator'] == username and game['players']:
+            # Entferne aus Game State (Scores, Hands, etc.)
+            if game.get('game_state'):
+                state = game['game_state']
+                if username in state.get('player_scores', {}):
+                    del state['player_scores'][username]
+                if username in state.get('player_hands', {}):
+                    del state['player_hands'][username]
+                if username in state.get('submitted_answers', {}):
+                    del state['submitted_answers'][username]
+                if username in state.get('active_players', []):
+                    state['active_players'].remove(username)
+            
+            # Wenn Ersteller weg ist, neuen Ersteller bestimmen
+            if was_creator:
+                if game['players']:
                     game['creator'] = game['players'][0]
-                
-                # Spiel löschen wenn leer
-                if not game['players']:
-                    # Timer wird automatisch vom universal_timer_task gestoppt
-                    # wenn das Spiel nicht mehr existiert
-                    del games[game_id]
+                elif game.get('spectators'):
+                    game['creator'] = game['spectators'][0]
                 else:
-                    # Informiere andere Spieler
-                    socketio.emit('player_left', {
-                        'username': username,
-                        'players': game['players'],
-                        'creator': game['creator']
-                    }, room=game_id)
+                    game['creator'] = None
+            
+            # Spiel löschen wenn leer
+            if not game['players'] and not game.get('spectators'):
+                # Timer wird automatisch vom universal_timer_task gestoppt
+                # wenn das Spiel nicht mehr existiert
+                del games[game_id]
+            else:
+                # Informiere andere Spieler
+                socketio.emit('player_left', {
+                    'username': username,
+                    'players': game['players'],
+                    'spectators': game.get('spectators', []),
+                    'creator': game['creator']
+                }, room=game_id)
         
         del users[username]
         if username in disconnect_timers:
@@ -408,7 +447,8 @@ def handle_reconnect(data):
             reconnect_data = {
                 'username': username,
                 'game_id': game_id,
-                'game': game
+                'game': game,
+                'is_spectator': users[username].get('is_spectator', False)
             }
             
             # Player Status hinzufügen
@@ -419,6 +459,15 @@ def handle_reconnect(data):
                 else:
                     player_statuses[player] = 'disconnected'
             reconnect_data['player_statuses'] = player_statuses
+            
+            # Spectator Status hinzufügen
+            spectator_statuses = {}
+            for spectator in game.get('spectators', []):
+                if spectator in users:
+                    spectator_statuses[spectator] = users[spectator].get('status', 'connected')
+                else:
+                    spectator_statuses[spectator] = 'disconnected'
+            reconnect_data['spectator_statuses'] = spectator_statuses
             
             # Wenn Spiel läuft, sende aktuellen Spielzustand
             if game['started'] and game.get('game_state'):
@@ -435,13 +484,19 @@ def handle_reconnect(data):
                 reconnect_data['timer'] = state.get('timer', -1)
                 reconnect_data['paused'] = state.get('paused', False)
                 
-                # Phase-spezifische Daten
+                # Phase-spezifische Daten (nur für Spieler, nicht für Spectators)
+                is_spectator = users[username].get('is_spectator', False)
+                
                 if state.get('round_phase') in ['answering', 'voting', 'result']:
                     reconnect_data['question'] = state['current_question']
-                    reconnect_data['hand'] = state['player_hands'].get(username, [])
+                    if not is_spectator:
+                        reconnect_data['hand'] = state['player_hands'].get(username, [])
+                    else:
+                        reconnect_data['hand'] = []  # Spectators haben keine Karten
                 
                 if state.get('round_phase') == 'answering':
-                    reconnect_data['has_submitted'] = username in state['submitted_answers']
+                    if not is_spectator:
+                        reconnect_data['has_submitted'] = username in state['submitted_answers']
                     reconnect_data['submitted_count'] = len(state['submitted_answers'])
                     reconnect_data['total_players'] = len(players) - 1
                 
@@ -454,6 +509,9 @@ def handle_reconnect(data):
                         answers = [hand[i] for i in answer_indices if i < len(hand)]
                         answer_options.append({'answers': answers})
                     reconnect_data['answer_options'] = answer_options
+            
+            # Stelle sicher, dass der Creator noch existiert
+            ensure_valid_creator(game_id)
             
             emit('reconnected', reconnect_data)
         else:
@@ -484,6 +542,7 @@ def handle_create_game(data):
         'name': game_name,
         'creator': username,
         'players': [username],
+        'spectators': [],  # Zuschauer die nicht aktiv mitspielen
         'is_public': is_public,
         'password': password,
         'settings': {
@@ -551,6 +610,7 @@ def handle_join_game(data):
     
     game_id = data.get('game_id')
     password = data.get('password', '')
+    is_spectator = data.get('is_spectator', False)  # Ob als Zuschauer beigetreten wird
     
     if game_id not in games:
         emit('error', {'message': 'Spiel nicht gefunden'})
@@ -563,17 +623,25 @@ def handle_join_game(data):
         emit('error', {'message': 'Falsches Passwort'})
         return
     
-    # Füge Spieler hinzu
-    if username not in game['players']:
-        game['players'].append(username)
-        
-        # Wenn Spiel läuft, initialisiere Spieler-Zustand für nächste Runde
-        if game['started'] and game.get('game_state'):
-            state = game['game_state']
-            # Füge leere Hand und Score hinzu
-            state['player_hands'][username] = []
-            state['player_scores'][username] = 0
-            # Spieler wird in der nächsten Runde Karten bekommen (via refill_hands)
+    # Füge Spieler oder Spectator hinzu
+    if is_spectator:
+        # Als Zuschauer beitreten
+        if username not in game['spectators'] and username not in game['players']:
+            game['spectators'].append(username)
+        users[username]['is_spectator'] = True
+    else:
+        # Als aktiver Spieler beitreten
+        if username not in game['players'] and username not in game['spectators']:
+            game['players'].append(username)
+            
+            # Wenn Spiel läuft, initialisiere Spieler-Zustand für nächste Runde
+            if game['started'] and game.get('game_state'):
+                state = game['game_state']
+                # Füge leere Hand und Score hinzu
+                state['player_hands'][username] = []
+                state['player_scores'][username] = 0
+                # Spieler wird in der nächsten Runde Karten bekommen (via refill_hands)
+        users[username]['is_spectator'] = False
     
     users[username]['game_id'] = game_id
     join_room(game_id)
@@ -586,12 +654,27 @@ def handle_join_game(data):
         else:
             player_statuses[player] = 'disconnected'
     
-    emit('game_joined', {'game_id': game_id, 'game': game, 'player_statuses': player_statuses})
+    spectator_statuses = {}
+    for spectator in game['spectators']:
+        if spectator in users:
+            spectator_statuses[spectator] = users[spectator].get('status', 'connected')
+        else:
+            spectator_statuses[spectator] = 'disconnected'
+    
+    emit('game_joined', {
+        'game_id': game_id, 
+        'game': game, 
+        'player_statuses': player_statuses,
+        'spectator_statuses': spectator_statuses,
+        'is_spectator': is_spectator
+    })
     
     # Informiere andere Spieler
     emit('player_joined', {
         'username': username,
-        'players': game['players']
+        'is_spectator': is_spectator,
+        'players': game['players'],
+        'spectators': game['spectators']
     }, room=game_id, include_self=False)
     
     # Aktualisiere Lobby
@@ -614,19 +697,30 @@ def handle_leave_game():
     
     game = games[game_id]
     
-    # Entferne Spieler
+    # Entferne Spieler aus players oder spectators
+    was_creator = game['creator'] == username
     if username in game['players']:
         game['players'].remove(username)
+    if username in game.get('spectators', []):
+        game['spectators'].remove(username)
     
     # Wenn Ersteller weg ist, neuen Ersteller bestimmen
-    if game['creator'] == username and game['players']:
-        game['creator'] = game['players'][0]
+    if was_creator:
+        # Wähle nächsten Spieler, falls vorhanden
+        if game['players']:
+            game['creator'] = game['players'][0]
+        # Ansonsten nächsten Spectator
+        elif game.get('spectators'):
+            game['creator'] = game['spectators'][0]
+        else:
+            # Keine Spieler mehr übrig
+            game['creator'] = None
     
     users[username]['game_id'] = None
     leave_room(game_id)
     
     # Spiel löschen wenn leer
-    if not game['players']:
+    if not game['players'] and not game.get('spectators'):
         # Timer wird automatisch vom universal_timer_task gestoppt
         del games[game_id]
     else:
@@ -634,6 +728,7 @@ def handle_leave_game():
         emit('player_left', {
             'username': username,
             'players': game['players'],
+            'spectators': game.get('spectators', []),
             'creator': game['creator']
         }, room=game_id)
     
@@ -670,16 +765,18 @@ def handle_kick_player(data):
     
     kicked_user = data.get('username')
     
-    if not kicked_user or kicked_user not in game['players']:
+    # Prüfe ob in players oder spectators
+    if kicked_user in game['players']:
+        game['players'].remove(kicked_user)
+    elif kicked_user in game.get('spectators', []):
+        game['spectators'].remove(kicked_user)
+    else:
         return
     
     # Creator kann sich nicht selbst kicken
     if kicked_user == kicker:
         emit('error', {'message': 'Du kannst dich nicht selbst kicken'})
         return
-    
-    # Entferne Spieler
-    game['players'].remove(kicked_user)
     
     # Update user state
     if kicked_user in users:
@@ -694,10 +791,127 @@ def handle_kick_player(data):
     socketio.emit('player_left', {
         'username': kicked_user,
         'players': game['players'],
+        'spectators': game.get('spectators', []),
         'creator': game['creator']
     }, room=game_id)
     
     socketio.emit('lobby_update', {'games': get_public_games()})
+
+@socketio.on('toggle_role')
+def handle_toggle_role():
+    username = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            username = user
+            break
+    
+    if not username:
+        return
+    
+    game_id = users[username].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    
+    # Spiel darf nicht gestartet sein
+    if game['started']:
+        emit('error', {'message': 'Rolle kann während des Spiels nicht gewechselt werden'})
+        return
+    
+    is_spectator = users[username].get('is_spectator', False)
+    
+    if is_spectator:
+        # Von Spectator zu Player wechseln
+        if username in game.get('spectators', []):
+            game['spectators'].remove(username)
+        if username not in game['players']:
+            game['players'].append(username)
+        users[username]['is_spectator'] = False
+        new_role = 'Spieler'
+    else:
+        # Von Player zu Spectator wechseln
+        if username in game['players']:
+            game['players'].remove(username)
+        if username not in game.get('spectators', []):
+            game['spectators'].append(username)
+        users[username]['is_spectator'] = True
+        new_role = 'Zuschauer'
+    
+    # Informiere alle im Raum
+    emit('role_changed', {
+        'username': username,
+        'is_spectator': users[username]['is_spectator'],
+        'players': game['players'],
+        'spectators': game.get('spectators', [])
+    }, room=game_id)
+    
+    emit('success', {'message': f'Du bist jetzt {new_role}'})
+
+@socketio.on('force_role')
+def handle_force_role(data):
+    """Creator erzwingt Rollenwechsel für anderen Spieler"""
+    creator = None
+    for user, user_data in users.items():
+        if user_data['sid'] == request.sid:
+            creator = user
+            break
+    
+    if not creator:
+        return
+    
+    game_id = users[creator].get('game_id')
+    if not game_id or game_id not in games:
+        return
+    
+    game = games[game_id]
+    
+    # Nur Creator kann Rollen erzwingen
+    if game['creator'] != creator:
+        emit('error', {'message': 'Nur der Ersteller kann Rollen ändern'})
+        return
+    
+    # Spiel darf nicht gestartet sein
+    if game['started']:
+        emit('error', {'message': 'Rolle kann während des Spiels nicht gewechselt werden'})
+        return
+    
+    target_username = data.get('username')
+    if not target_username or target_username not in users:
+        return
+    
+    # Creator kann sich selbst nicht verschieben (dafür toggle_role nutzen)
+    if target_username == creator:
+        emit('error', {'message': 'Nutze deinen eigenen Toggle-Button um deine Rolle zu ändern'})
+        return
+    
+    is_spectator = users[target_username].get('is_spectator', False)
+    
+    if is_spectator:
+        # Von Spectator zu Player verschieben
+        if target_username in game.get('spectators', []):
+            game['spectators'].remove(target_username)
+        if target_username not in game['players']:
+            game['players'].append(target_username)
+        users[target_username]['is_spectator'] = False
+        new_role = 'Spieler'
+    else:
+        # Von Player zu Spectator verschieben
+        if target_username in game['players']:
+            game['players'].remove(target_username)
+        if target_username not in game.get('spectators', []):
+            game['spectators'].append(target_username)
+        users[target_username]['is_spectator'] = True
+        new_role = 'Zuschauer'
+    
+    # Informiere alle im Raum
+    emit('role_changed', {
+        'username': target_username,
+        'is_spectator': users[target_username]['is_spectator'],
+        'players': game['players'],
+        'spectators': game.get('spectators', []),
+        'forced_by': creator
+    }, room=game_id)
 
 @socketio.on('update_settings')
 def handle_update_settings(data):
@@ -754,13 +968,18 @@ def handle_start_game():
     
     game = games[game_id]
     
+    # Stelle sicher, dass der Creator noch existiert
+    ensure_valid_creator(game_id)
+    
     # Nur Ersteller kann Spiel starten
     if game['creator'] != username:
         emit('error', {'message': 'Nur der Ersteller kann das Spiel starten'})
         return
     
-    if len(game['players']) < 3:
-        emit('error', {'message': 'Mindestens 3 Spieler erforderlich'})
+    # Zähle nur aktive Spieler (keine Spectators)
+    active_player_count = len(game['players'])
+    if active_player_count < 3:
+        emit('error', {'message': 'Mindestens 3 aktive Spieler erforderlich (Zuschauer zählen nicht)'})
         return
     
     game['started'] = True
@@ -861,6 +1080,29 @@ def start_new_round(game_id):
             if username == player and user_data.get('game_id') == game_id:
                 socketio.emit('round_started', player_data, room=user_data['sid'])
                 break
+    
+    # Sende Read-Only Ansicht an Spectators
+    game = games.get(game_id)
+    if game and 'spectators' in game:
+        for spectator in game['spectators']:
+            spectator_data = {
+                'czar': czar,
+                'question': current_question,
+                'hand': [],  # Spectators haben keine Karten
+                'scores': state['player_scores'],
+                'is_czar': False,
+                'is_spectator': True,
+                'answer_time': answer_time,
+                'win_score': game['settings'].get('win_score', 10),
+                'max_rounds': game['settings'].get('max_rounds', 50),
+                'current_round': len(state['round_history']) + 1
+            }
+            
+            # Finde SID des Spectators
+            for username, user_data in users.items():
+                if username == spectator and user_data.get('game_id') == game_id:
+                    socketio.emit('round_started', spectator_data, room=user_data['sid'])
+                    break
 
 @socketio.on('submit_answers')
 def handle_submit_answers(data):
@@ -872,6 +1114,11 @@ def handle_submit_answers(data):
             break
     
     if not username:
+        return
+    
+    # Spectators dürfen keine Antworten abgeben
+    if users[username].get('is_spectator', False):
+        emit('error', {'message': 'Zuschauer können nicht mitspielen'})
         return
     
     game_id = users[username].get('game_id')
