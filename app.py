@@ -321,15 +321,35 @@ def handle_set_username(data):
         emit('username_error', {'message': 'Bitte gib einen Namen ein'})
         return
     
-    # Prüfe ob Name bereits existiert
+    # Bereinige Username: Ersetze mehrfache Leerzeichen durch ein einzelnes
+    import re
+    username = re.sub(r'\s+', ' ', username).strip()
+    
+    # Prüfe Länge
+    if len(username) < 2:
+        emit('username_error', {'message': 'Der Name muss mindestens 2 Zeichen lang sein'})
+        return
+    
+    if len(username) > 20:
+        emit('username_error', {'message': 'Der Name darf maximal 20 Zeichen lang sein'})
+        return
+    
+    # Prüfe ob Name bereits existiert und Spieler verbunden ist
     if username in users:
         # Wenn es der gleiche Benutzer ist (Reconnect)
         if users[username]['sid'] == request.sid:
             emit('username_set', {'username': username})
             return
         
-        # Name bereits vergeben
-        emit('username_error', {'message': 'Dieser Name ist bereits vergeben'})
+        # Prüfe ob der andere Spieler noch verbunden ist
+        user_status = users[username].get('status', 'connected')
+        if user_status == 'connected':
+            emit('username_error', {'message': 'Dieser Name ist bereits vergeben'})
+            return
+        
+        # Wenn der andere Spieler disconnecting ist, erlaube den Namen nicht
+        # (30 Sekunden Grace Period)
+        emit('username_error', {'message': 'Dieser Name wird gerade verwendet. Bitte warte kurz oder wähle einen anderen Namen.'})
         return
     
     # Registriere Benutzer

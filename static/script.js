@@ -121,11 +121,29 @@ usernameInput.addEventListener('keypress', (e) => {
 });
 
 function submitUsername() {
-    const username = usernameInput.value.trim();
+    let username = usernameInput.value.trim();
+    
     if (!username) {
         usernameError.textContent = 'Bitte gib einen Namen ein';
         return;
     }
+    
+    // Ersetze mehrfache Leerzeichen durch ein einzelnes
+    username = username.replace(/\s+/g, ' ');
+    
+    // Prüfe Länge (min 2, max 20 Zeichen)
+    if (username.length < 2) {
+        usernameError.textContent = 'Der Name muss mindestens 2 Zeichen lang sein';
+        return;
+    }
+    
+    if (username.length > 20) {
+        usernameError.textContent = 'Der Name darf maximal 20 Zeichen lang sein';
+        return;
+    }
+    
+    // Update input field mit bereinigtem Namen
+    usernameInput.value = username;
     
     socket.emit('set_username', { username });
 }
