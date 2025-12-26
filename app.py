@@ -14,7 +14,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Datenstrukturen
 users = {}  # {username: {sid: str, last_seen: float, game_id: str}}
 games = {}  # {game_id: {name: str, creator: str, players: [], settings: {}, is_public: bool, password: str}}
-disconnect_timers = {}  # {username: Timer}
+disconnect_timers = {}  # {username: timestamp of disconnect}
 global_timer_task = None  # Globaler Timer-Task
 timer_started = False  # Flag ob Timer bereits gestartet wurde
 
@@ -24,6 +24,14 @@ def universal_timer_task():
     print("Universal Timer Task gestartet", flush=True)
     while True:
         try:
+            # Durchlaufe alle disconnected Benutzer und bereinige nach 30 Sekunden
+            current_time = time.time()
+            for username in list(disconnect_timers.keys()):
+                disconnect_time = disconnect_timers[username]
+                if current_time - disconnect_time >= 30:
+                    print(f"Bereinige Benutzer nach 30 Sekunden Inaktivität: {username}", flush=True)
+                    cleanup_user(username)
+
             # Durchlaufe alle aktiven Spiele
             for game_id in list(games.keys()):
                 if game_id not in games:
@@ -355,15 +363,7 @@ def handle_disconnect():
                 'status': 'disconnecting'
             }, room=game_id)
         
-        # Starte 30-Sekunden-Timer mit eventlet
-        if username in disconnect_timers:
-            try:
-                eventlet.kill(disconnect_timers[username])
-            except:
-                pass
-        
-        timer = eventlet.spawn_after(30.0, cleanup_user, username)
-        disconnect_timers[username] = timer
+        disconnect_timers[username] = time.time()
 
 @socketio.on('set_username')
 def handle_set_username(data):
@@ -414,10 +414,6 @@ def handle_set_username(data):
     
     # Lösche eventuellen Timer
     if username in disconnect_timers:
-        try:
-            eventlet.kill(disconnect_timers[username])
-        except:
-            pass
         del disconnect_timers[username]
     
     emit('username_set', {'username': username})
@@ -435,10 +431,6 @@ def handle_reconnect(data):
         
         # Lösche Timer
         if username in disconnect_timers:
-            try:
-                eventlet.kill(disconnect_timers[username])
-            except:
-                pass
             del disconnect_timers[username]
         
         game_id = users[username].get('game_id')
