@@ -10,7 +10,7 @@ class Game:
         self.active_players = [ownerName]         # List of player objects or IDs
         self.player_status = {ownerName: 'active'}   # playerName: 'active', 'disconnected', etc.
         self.spectators = []      # List of spectator objects
-        self.max_players = 100  # Maximum number of players
+
 
         # Game variables
         self.history = []          # list of past rounds
@@ -38,8 +38,33 @@ class Game:
             "timeToChooseWhiteCards": 60,
             "timeToChooseWinner": 60,
             "timeAfterWinnerChosen": 15,
+            "maxPlayers": 100
         }
     
+    def get_socket_game_data(self, include_player_cards=False, current_player_cards:str=None, include_history=False):
+        return {
+            "game_id": self.game_id,
+            "owner": self.owner,
+            "active_players": self.active_players,
+            "player_status": self.player_status,
+            "spectators": self.spectators,
+            "history": self.history if include_history else [],
+            "current_round": self.current_round,
+            "playerCards": self.playerCards if include_player_cards else {},
+            "currentPlayerCards": self.playerCards.get(current_player_cards, []) if current_player_cards else [],
+            "current_black_card": self.current_black_card,
+            "winning_white_cards": self.winning_white_cards,
+            "submitted_white_cards": self.submitted_white_cards,
+            "scores": self.scores,
+            "czarIndex": self.czarIndex,
+            "czar": self.czar,
+            "state": self.state,
+            "currentTimerTotalSeconds": self.currentTimerTotalSeconds,
+            "currentTimerSeconds": self.currentTimerSeconds,
+            "paused": self.paused,
+            "settings": self.settings
+        }
+
     def toogle_pause(self):
         self.paused = not self.paused
 
@@ -47,7 +72,8 @@ class Game:
         if self.currentTimerSeconds < 0:
             return False
         
-        self.currentTimerSeconds -= 1
+        if not self.paused:
+            self.currentTimerSeconds -= 1
         
         if self.currentTimerSeconds == 0:
             if self.state == 'choosing_cards':
@@ -69,7 +95,7 @@ class Game:
     def add_player(self, playerName, isSpectator):
         if not playerName:
             return False
-        if len(self.active_players) >= self.max_players:
+        if len(self.active_players) >= self.settings["maxPlayers"] and not isSpectator:
             return False
         if playerName in self.active_players:
             return False
@@ -94,6 +120,8 @@ class Game:
     def remove_player(self, playerName):
         isSpectator = playerName in self.spectators
         isPlayer = playerName in self.active_players
+
+        self.player_status.pop(playerName, None)
 
         if not isSpectator and not isPlayer:
             return False
