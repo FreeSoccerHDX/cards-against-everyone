@@ -8,6 +8,7 @@ class Game:
         self.game_id = str(uuid.uuid4())
         self.owner = ownerName      # Owner's player name
         self.active_players = [ownerName]         # List of player objects or IDs
+        self.player_status = {ownerName: 'active'}   # playerName: 'active', 'disconnected', etc.
         self.spectators = []      # List of spectator objects
         self.max_players = 100  # Maximum number of players
 
@@ -19,7 +20,7 @@ class Game:
         self.winning_white_cards = []  # list of winning white cards in current round
         self.submitted_white_cards = {}  # playerName: [white_card(s)]
         self.scores = {}           # playerName: score
-        self.czarIndex = 0      # index of current czar in active_players -> random set at start
+        self.czarIndex = 0      # index of current czar in active_players -> random set-value at start
         self.czar = None           # playerName of current czar
         self.state = 'lobby'  # 'lobby', 'choosing_cards', 'choosing_winner', 'countdown_next_round', 'game_ended'
         self.currentTimerTotalSeconds = 0  # total seconds for current timer
@@ -75,7 +76,16 @@ class Game:
             self.spectators.append(playerName)
         else:
             self.active_players.append(playerName)
+        
+        self.player_status[playerName] = 'active'
+
         return True
+    
+    def mark_player_connection_status(self, playerName, status):
+        if playerName in self.player_status:
+            self.player_status[playerName] = status
+            return True
+        return False
 
     def remove_player(self, playerName):
         isSpectator = playerName in self.spectators
@@ -91,13 +101,14 @@ class Game:
             self.active_players.remove(playerName)
             self.scores.pop(playerName, None)
             self.submitted_white_cards.pop(playerName, None)
-                
-            if self.czar == playerName: # only player
-                self.czar = None
-                if len(self.active_players) > 0:
-                    self.next_round()
+            
+            if self.is_game_started(): # only if game started
+                if self.czar == playerName: # only player
+                    self.czarIndex -= 1
+                    # do nothing and wait for next round to assign new czar
+                    
 
-        if self.owner == playerName: # spectator or player
+        if self.owner == playerName: # possible for spectator or player
             self.owner = None
             if len(self.active_players) > 0:
                 self.owner = self.active_players[0]
@@ -105,6 +116,9 @@ class Game:
                 self.owner = self.spectators[0]
             else:
                 self.owner = None # Game can be deleted because no players/spectators are left
+
+        if len(self.active_players) < 3 and self.is_game_started():
+            self.end_game()
 
         return True
 
@@ -213,6 +227,11 @@ class Game:
             if score >= self.settings["maxPointsToWin"]:
                 self.end_game()
                 return True
+            
+        # check if not enough players
+        if len(self.active_players) < 3:
+            self.end_game()
+            return True
 
         self.current_round += 1
         self.submitted_white_cards = {}
