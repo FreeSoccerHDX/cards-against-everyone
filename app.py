@@ -73,6 +73,9 @@ def handle_timer_expired(game_id):
         # Auto-Vote für Czar
         auto_vote_random_winner(game_id)
 
+def broadcastPublicGames():
+    socketio.emit('public_games', {'games': get_public_games()})
+
 def auto_submit_all_players(game_id):
     """Automatisches Abgeben für alle Spieler die noch nicht abgegeben haben"""
     if game_id not in games:
@@ -570,7 +573,7 @@ def handle_create_game(data):
     
     emit('game_created', {'game_id': game_id, 'game': games[game_id]})
     # Aktualisiere Lobby für alle
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
 
 @socketio.on('get_public_games')
 def handle_get_public_games():
@@ -785,7 +788,7 @@ def handle_join_game(data):
     }, room=game_id, include_self=False)
     
     # Aktualisiere Lobby
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
 
 @socketio.on('leave_game')
 def handle_leave_game():
@@ -841,7 +844,9 @@ def handle_leave_game():
     
     emit('left_game', {})
     # Aktualisiere Lobby
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
+
+
 
 @socketio.on('kick_player')
 def handle_kick_player(data):
@@ -902,7 +907,7 @@ def handle_kick_player(data):
         'creator': game['creator']
     }, room=game_id)
     
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
 
 @socketio.on('toggle_role')
 def handle_toggle_role():
@@ -1056,7 +1061,7 @@ def handle_update_settings(data):
     emit('settings_updated', {'game': game}, room=game_id)
     
     # Aktualisiere Lobby
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
 
 @socketio.on('start_game')
 def handle_start_game():
@@ -1098,7 +1103,7 @@ def handle_start_game():
     emit('game_started', {'game': game}, room=game_id)
     
     # Aktualisiere Lobby
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
     
     # Starte erste Runde
     start_new_round(game_id)
@@ -1427,7 +1432,7 @@ def end_game(game_id, winner):
     # Reset Spiel
     game['started'] = False
     game['game_state'] = None
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
 
 @socketio.on('pause_game')
 def handle_pause_game():
@@ -1529,7 +1534,7 @@ def handle_reset_to_lobby():
     
     # Informiere alle Spieler
     socketio.emit('game_reset_to_lobby', {'game': game}, room=game_id)
-    socketio.emit('lobby_update', {'games': get_public_games()})
+    broadcastPublicGames()
 
 if __name__ == '__main__':
     print("Starte Server...", flush=True)

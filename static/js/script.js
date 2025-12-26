@@ -3,10 +3,9 @@ const socket = io();
 window.socket = socket;
 
 // Initialisiere Game Settings nach Socket-Initialisierung
-if (window.gameSettings && window.gameSettings.initialize) {
-    window.gameSettings.initialize();
-}
+window.gameSettings.initialize();
 
+// Globale Variablen
 let currentUsername = null;
 let currentGameId = null;
 let currentGameCreator = null; // Track den aktuellen Creator
@@ -24,7 +23,6 @@ function setIsCreator(value) {
 
 // DOM Elements
 const usernameScreen = document.getElementById('username-screen');
-const lobbyScreen = document.getElementById('lobby-screen');
 const gameScreen = document.getElementById('game-screen');
 
 const usernameInput = document.getElementById('username-input');
@@ -34,7 +32,6 @@ const usernameError = document.getElementById('username-error');
 const currentUsernameDisplay = document.getElementById('current-username');
 const logoutBtn = document.getElementById('logout-btn');
 const createGameBtn = document.getElementById('create-game-btn');
-const refreshGamesBtn = document.getElementById('refresh-games-btn');
 const publicGamesDiv = document.getElementById('public-games');
 
 const createGameModal = document.getElementById('create-game-modal');
@@ -72,11 +69,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const joinGameId = urlParams.get('join');
 let pendingJoinGameId = null; // Für Passwort-Abfrage
 
-// Utility Functions
-function showScreen(screen) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    screen.classList.add('active');
-}
+
 
 function clearUrlParams() {
     // Entferne URL-Parameter nach erfolgreichem Join
@@ -197,8 +190,7 @@ socket.on('username_set', (data) => {
         // Hole erst Spielinformationen
         socket.emit('get_game_info', { game_id: joinGameId });
     } else {
-        showScreen(lobbyScreen);
-        socket.emit('get_public_games');
+        window.ui.showServerLobby();
     }
 });
 
@@ -241,7 +233,7 @@ socket.on('reconnected', (data) => {
             }
             
             // Zeige Spielbereich
-            showScreen(gameScreen);
+            window.ui.showScreen(gameScreen);
             settingsPanel.style.display = 'none';
             gamePlayPanel.style.display = 'block';
             gameScreen.classList.add('playing');
@@ -392,14 +384,13 @@ socket.on('reconnected', (data) => {
         } else {
             // Spiel nicht gestartet, zeige normale Lobby
             updateGameRoom(data.game);
-            showScreen(gameScreen);
+            window.ui.showScreen(gameScreen);
         }
     } else if (joinGameId) {
         // Wenn Join-Link vorhanden, hole Spielinfo
         socket.emit('get_game_info', { game_id: joinGameId });
     } else {
-        showScreen(lobbyScreen);
-        socket.emit('get_public_games');
+        window.ui.showServerLobby();
     }
 });
 
@@ -421,7 +412,7 @@ logoutBtn.addEventListener('click', async () => {
         setIsCreator(false);
         
         // Gehe zu Username-Screen
-        showScreen(usernameScreen);
+        window.ui.showScreen(usernameScreen);
         usernameInput.value = '';
         usernameError.textContent = '';
         
@@ -437,9 +428,7 @@ createGameBtn.addEventListener('click', () => {
     showModal(createGameModal);
 });
 
-refreshGamesBtn.addEventListener('click', () => {
-    socket.emit('get_public_games');
-});
+
 
 createGameConfirm.addEventListener('click', () => {
     const name = gameNameInput.value.trim() || 'Neues Spiel';
@@ -458,46 +447,6 @@ createGameConfirm.addEventListener('click', () => {
 createGameCancel.addEventListener('click', () => {
     hideModal(createGameModal);
 });
-
-socket.on('public_games', (data) => {
-    displayPublicGames(data.games);
-});
-
-socket.on('lobby_update', (data) => {
-    displayPublicGames(data.games);
-});
-
-function displayPublicGames(games) {
-    if (!games || games.length === 0) {
-        publicGamesDiv.innerHTML = '<p class="empty-message">Keine öffentlichen Spiele verfügbar</p>';
-        return;
-    }
-    
-    publicGamesDiv.innerHTML = '';
-    games.forEach(game => {
-        const card = document.createElement('div');
-        card.className = 'game-card';
-        card.innerHTML = `
-            <h3>${escapeHtml(game.name)}</h3>
-            <div class="game-info">
-                <span>👥 ${game.players} Spieler</span>
-                ${game.has_password ? '<span class="lock-icon">🔒</span>' : ''}
-            </div>
-        `;
-        card.addEventListener('click', () => {
-            selectedGameForJoin = game;
-            joinGameName.textContent = `Beitritt zu: ${game.name}`;
-            if (game.has_password) {
-                joinPasswordGroup.style.display = 'block';
-                joinPasswordInput.value = '';
-            } else {
-                joinPasswordGroup.style.display = 'none';
-            }
-            showModal(joinGameModal);
-        });
-        publicGamesDiv.appendChild(card);
-    });
-}
 
 joinGameConfirm.addEventListener('click', () => {
     const password = joinPasswordInput.value.trim();
@@ -544,14 +493,13 @@ socket.on('game_info', (data) => {
     // Spectator-Checkbox zurücksetzen
     document.getElementById('join-as-spectator').checked = false;
     
-    showScreen(lobbyScreen); // Zeige Lobby im Hintergrund
+    window.ui.showServerLobby(); // Zeige Lobby im Hintergrund
     showModal(joinGameModal);
 });
 
 socket.on('game_info_error', (data) => {
     showNotification(data.message, 'error');
-    showScreen(lobbyScreen);
-    socket.emit('get_public_games');
+    window.ui.showServerLobby();
     clearUrlParams();
 });
 
@@ -561,7 +509,7 @@ socket.on('game_created', (data) => {
     currentGameCreator = data.game.creator;
     setIsCreator(true);
     updateGameRoom(data.game);
-    showScreen(gameScreen);
+    window.ui.showScreen(gameScreen);
     showNotification('Spiel erstellt!', 'success');
 });
 
@@ -576,7 +524,7 @@ socket.on('game_joined', (data) => {
         playerStatuses = data.player_statuses;
     }
     
-    showScreen(gameScreen);
+    window.ui.showScreen(gameScreen);
     clearUrlParams(); // Entferne Join-Parameter aus URL
     
     // Wenn Spiel NICHT läuft - normale Lobby
@@ -770,8 +718,7 @@ socket.on('kicked_from_game', (data) => {
     currentGameCreator = null;
     setIsCreator(false);
     playerStatuses = {};
-    showScreen(lobbyScreen);
-    socket.emit('get_public_games');
+    window.ui.showServerLobby();
 });
 
 socket.on('player_left', (data) => {
@@ -918,8 +865,7 @@ socket.on('left_game', () => {
     currentGameId = null;
     currentGameCreator = null;
     setIsCreator(false);
-    showScreen(lobbyScreen);
-    socket.emit('get_public_games');
+    window.ui.showServerLobby();
 });
 
 function updateGameRoom(game, spectatorStatuses = {}) {
