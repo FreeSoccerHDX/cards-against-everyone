@@ -25,6 +25,7 @@ class Game:
         self.state = 'lobby'  # 'lobby', 'choosing_cards', 'choosing_winner', 'countdown_next_round', 'game_ended'
         self.currentTimerTotalSeconds = 0  # total seconds for current timer
         self.currentTimerSeconds = 0      # remaining seconds for current timer
+        self.paused = False # whether the game is paused (owner can pause during choosing phases)
 
         # Game Settings
         self.settings = {    
@@ -39,6 +40,9 @@ class Game:
             "timeAfterWinnerChosen": 15,
         }
     
+    def toogle_pause(self):
+        self.paused = not self.paused
+
     def timer_tick(self):
         if self.currentTimerSeconds < 0:
             return False
