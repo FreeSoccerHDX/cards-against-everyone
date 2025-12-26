@@ -80,7 +80,10 @@ def auto_submit_all_players(game_id):
     
     game = games[game_id]
     state = game['game_state']
-    czar = state['active_players'][state['current_czar_index']]
+    czar = None
+    if state.get('active_players') and isinstance(state.get('current_czar_index'), int):
+        if 0 <= state['current_czar_index'] < len(state['active_players']):
+            czar = state['active_players'][state['current_czar_index']]
     
     for player in state['active_players']:
         if player == czar:
@@ -179,7 +182,10 @@ def process_winner_selection(game_id, winner_index):
     state['player_scores'][winner] += 1
     
     # Speichere Runde in History
-    czar = state['active_players'][state['current_czar_index']]
+    czar = None
+    if state.get('active_players') and isinstance(state.get('current_czar_index'), int):
+        if 0 <= state['current_czar_index'] < len(state['active_players']):
+            czar = state['active_players'][state['current_czar_index']]
     round_number = len(state['round_history']) + 1
     state['round_history'].append({
         'round_num': round_number,
@@ -473,13 +479,15 @@ def handle_reconnect(data):
             if game['started'] and game.get('game_state'):
                 state = game['game_state']
                 players = game['players']
-                czar = players[state['current_czar_index']]
-                
+                czar = None
+                if players and isinstance(state.get('current_czar_index'), int):
+                    if 0 <= state['current_czar_index'] < len(players):
+                        czar = players[state['current_czar_index']]
                 # Grundlegende Spielinformationen
                 reconnect_data['game_started'] = True
                 reconnect_data['round_phase'] = state.get('round_phase')
                 reconnect_data['czar'] = czar
-                reconnect_data['is_czar'] = username == czar
+                reconnect_data['is_czar'] = username == czar if czar is not None else False
                 reconnect_data['scores'] = state['player_scores']
                 reconnect_data['timer'] = state.get('timer', -1)
                 reconnect_data['paused'] = state.get('paused', False)
