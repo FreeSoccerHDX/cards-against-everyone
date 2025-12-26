@@ -74,7 +74,7 @@ def handle_timer_expired(game_id):
         auto_vote_random_winner(game_id)
 
 def broadcastPublicGames():
-    socketio.emit('public_games', {'games': get_public_games()})
+    socketio.emit('public_games_list', {'games': get_public_games()})
 
 def auto_submit_all_players(game_id):
     """Automatisches Abgeben für alle Spieler die noch nicht abgegeben haben"""
@@ -571,24 +571,24 @@ def handle_create_game(data):
     users[username]['game_id'] = game_id
     join_room(game_id)
     
-    emit('game_created', {'game_id': game_id, 'game': games[game_id]})
+    emit('game_created', games[game_id])
     # Aktualisiere Lobby für alle
     broadcastPublicGames()
 
 @socketio.on('get_public_games')
 def handle_get_public_games():
-    emit('public_games', {'games': get_public_games()})
+    emit('public_games_list', {'games': get_public_games()})
 
-@socketio.on('get_game_info')
+@socketio.on('get_game_info_link_join')
 def handle_get_game_info(data):
     game_id = data.get('game_id')
     if game_id not in games:
-        emit('game_info_error', {'message': 'Spiel nicht gefunden'})
+        emit('game_info_link_join_error', {'message': 'Spiel nicht gefunden'})
         return
     
     game = games[game_id]
-    emit('game_info', {
-        'game_id': game_id,
+    emit('game_info_link_join', {
+        'id': game_id,
         'name': game['name'],
         'has_password': bool(game['password']),
         'started': game['started']
@@ -598,7 +598,7 @@ def get_public_games():
     """Gibt alle öffentlichen Spiele zurück"""
     public_games = []
     for game_id, game in games.items():
-        if game['is_public'] and not game['started']:
+        if game['is_public']: #and not game['started']:
             public_games.append({
                 'id': game_id,
                 'name': game['name'],

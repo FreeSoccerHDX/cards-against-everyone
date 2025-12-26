@@ -8,6 +8,4 @@ function showScreen(screen) {
 
 
 
-window.ui = {
-    showScreen
-};
+window.ui.showScreen = showScreen;

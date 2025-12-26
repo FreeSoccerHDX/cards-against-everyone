@@ -2,52 +2,23 @@ const socket = io();
 // Mache socket global verfügbar für andere Module
 window.socket = socket;
 
+window.ui = {};
+
 // Initialisiere Game Settings nach Socket-Initialisierung
 window.gameSettings.initialize();
 
-// Globale Variablen
-let currentUsername = null;
 let currentGameId = null;
 let currentGameCreator = null; // Track den aktuellen Creator
-let isCreator = false;
 window.isCreator = false; // Mache isCreator global verfügbar für game-settings.js
 let isPaused = false; // Track Pause-Status
-let selectedGameForJoin = null;
 let playerStatuses = {}; // Track player connection statuses
 
 // Helper-Funktion um isCreator zu setzen und global zu synchronisieren
 function setIsCreator(value) {
-    isCreator = value;
     window.isCreator = value;
 }
 
 // DOM Elements
-const usernameScreen = document.getElementById('username-screen');
-const gameScreen = document.getElementById('game-screen');
-
-const usernameInput = document.getElementById('username-input');
-const usernameSubmit = document.getElementById('username-submit');
-const usernameError = document.getElementById('username-error');
-
-const currentUsernameDisplay = document.getElementById('current-username');
-const logoutBtn = document.getElementById('logout-btn');
-const createGameBtn = document.getElementById('create-game-btn');
-const publicGamesDiv = document.getElementById('public-games');
-
-const createGameModal = document.getElementById('create-game-modal');
-const gameNameInput = document.getElementById('game-name-input');
-const gamePublicCheckbox = document.getElementById('game-public-checkbox');
-const gamePasswordInput = document.getElementById('game-password-input');
-const createGameConfirm = document.getElementById('create-game-confirm');
-const createGameCancel = document.getElementById('create-game-cancel');
-
-const joinGameModal = document.getElementById('join-game-modal');
-const joinGameName = document.getElementById('join-game-name');
-const joinPasswordGroup = document.getElementById('join-password-group');
-const joinPasswordInput = document.getElementById('join-password-input');
-const joinGameConfirm = document.getElementById('join-game-confirm');
-const joinGameCancel = document.getElementById('join-game-cancel');
-
 const gameTitle = document.getElementById('game-title');
 const leaveGameBtn = document.getElementById('leave-game-btn');
 const playersListDiv = document.getElementById('players-list');
@@ -66,10 +37,7 @@ const notification = document.getElementById('notification');
 
 // Check for join link in URL
 const urlParams = new URLSearchParams(window.location.search);
-const joinGameId = urlParams.get('join');
-let pendingJoinGameId = null; // Für Passwort-Abfrage
-
-
+var joinGameId = urlParams.get('join');
 
 function clearUrlParams() {
     // Entferne URL-Parameter nach erfolgreichem Join
@@ -89,64 +57,9 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-function showModal(modal) {
-    modal.classList.add('active');
-}
-
-function hideModal(modal) {
-    modal.classList.remove('active');
-}
-
-// LocalStorage für Reconnect
-function saveUsername(username) {
-    localStorage.setItem('cae_username', username);
-}
-
-function getSavedUsername() {
-    return localStorage.getItem('cae_username');
-}
-
-function clearSavedUsername() {
-    localStorage.removeItem('cae_username');
-}
-
-// Username Screen
-usernameSubmit.addEventListener('click', submitUsername);
-usernameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') submitUsername();
-});
-
-function submitUsername() {
-    let username = usernameInput.value.trim();
-    
-    if (!username) {
-        usernameError.textContent = 'Bitte gib einen Namen ein';
-        return;
-    }
-    
-    // Ersetze mehrfache Leerzeichen durch ein einzelnes
-    username = username.replace(/\s+/g, ' ');
-    
-    // Prüfe Länge (min 2, max 20 Zeichen)
-    if (username.length < 2) {
-        usernameError.textContent = 'Der Name muss mindestens 2 Zeichen lang sein';
-        return;
-    }
-    
-    if (username.length > 20) {
-        usernameError.textContent = 'Der Name darf maximal 20 Zeichen lang sein';
-        return;
-    }
-    
-    // Update input field mit bereinigtem Namen
-    usernameInput.value = username;
-    
-    socket.emit('set_username', { username });
-}
-
 // Versuche Reconnect beim Laden
 window.addEventListener('load', () => {
-    const savedUsername = getSavedUsername();
+    const savedUsername = window.ui.getSavedUsername();
     if (savedUsername) {
         socket.emit('reconnect_user', { username: savedUsername });
     }
@@ -162,53 +75,27 @@ socket.on('connect', () => {
     
     // Wenn wir bereits einen Username hatten und in einem Spiel waren,
     // aber der Server neugestartet wurde, laden wir die Seite neu
-    if (currentUsername && currentGameId) {
+    if (window.currentUsername && currentGameId) {
         // Versuche zu reconnecten
-        socket.emit('reconnect_user', { username: currentUsername });
+        socket.emit('reconnect_user', { username: window.currentUsername });
         
         // Wenn nach kurzer Zeit keine Antwort kommt, neu laden
         setTimeout(() => {
             // Prüfe ob wir noch im Spiel sind
             if (currentGameId) {
                 console.log('Server-Neustart erkannt, lade Seite neu...');
-                clearSavedUsername();
+                window.ui.clearSavedUsername();
                 location.reload();
             }
         }, 1000);
     }
 });
 
-// Socket Events
-socket.on('username_set', (data) => {
-    currentUsername = data.username;
-    saveUsername(currentUsername);
-    currentUsernameDisplay.textContent = currentUsername;
-    usernameError.textContent = '';
-    
-    // Prüfe ob Join-Link vorhanden ist
-    if (joinGameId) {
-        // Hole erst Spielinformationen
-        socket.emit('get_game_info', { game_id: joinGameId });
-    } else {
-        window.ui.showServerLobby();
-    }
-});
 
-socket.on('username_error', (data) => {
-    usernameError.textContent = data.message;
-    showNotification(data.message, 'error');
-    
-    // Wenn wir bereits im Spiel waren aber Session abgelaufen ist (Server-Neustart),
-    // lösche gespeicherte Daten und lade neu
-    if (data.message.includes('abgelaufen') && currentGameId) {
-        clearSavedUsername();
-        setTimeout(() => location.reload(), 1000);
-    }
-});
 
 socket.on('reconnected', (data) => {
-    currentUsername = data.username;
-    currentUsernameDisplay.textContent = currentUsername;
+    window.currentUsername = data.username;
+    currentUsernameDisplay.textContent = window.currentUsername;
     
     if (data.game_id && data.game) {
         currentGameId = data.game_id;
@@ -223,7 +110,7 @@ socket.on('reconnected', (data) => {
         if (data.game_started && data.round_phase) {
             // Update grundlegende Game-Infos
             currentGameCreator = data.game.creator;
-            setIsCreator(data.game.creator === currentUsername);
+            setIsCreator(data.game.creator === window.currentUsername);
             gameTitle.textContent = data.game.name;
             updatePlayersList(data.game.players, data.game.creator);
             
@@ -245,7 +132,7 @@ socket.on('reconnected', (data) => {
             if (spectatorsSection) spectatorsSection.style.display = 'none';
             
             // Update game controls visibility
-            if (isCreator) {
+            if (window.isCreator) {
                 pauseGameBtn.style.display = 'inline-block';
                 resumeGameBtn.style.display = 'none';
                 resetLobbyBtn.style.display = 'inline-block';
@@ -259,7 +146,7 @@ socket.on('reconnected', (data) => {
             if (data.paused) {
                 isPaused = true;
                 pauseOverlay.classList.add('active');
-                if (isCreator) {
+                if (window.isCreator) {
                     pauseGameBtn.style.display = 'none';
                     resumeGameBtn.style.display = 'inline-block';
                 }
@@ -388,290 +275,30 @@ socket.on('reconnected', (data) => {
         }
     } else if (joinGameId) {
         // Wenn Join-Link vorhanden, hole Spielinfo
-        socket.emit('get_game_info', { game_id: joinGameId });
+        socket.emit('get_game_info_link_join', { game_id: joinGameId });
+        joinGameId = null; // Nur einmal versuchen
+        clearUrlParams();
     } else {
         window.ui.showServerLobby();
     }
 });
 
-// Logout
-logoutBtn.addEventListener('click', async () => {
-    if (await customConfirm('Möchtest du dich wirklich abmelden?', 'Abmelden')) {
-        // Lösche gespeicherten Username
-        clearSavedUsername();
-        
-        // Verlasse ggf. Spiel
-        if (currentGameId) {
-            socket.emit('leave_game');
-        }
-        
-        // Reset Zustand
-        currentUsername = null;
-        currentGameId = null;
-        currentGameCreator = null;
-        setIsCreator(false);
-        
-        // Gehe zu Username-Screen
-        window.ui.showScreen(usernameScreen);
-        usernameInput.value = '';
-        usernameError.textContent = '';
-        
-        showNotification('Abgemeldet', 'info');
-    }
-});
 
-// Lobby
-createGameBtn.addEventListener('click', () => {
-    gameNameInput.value = `${currentUsername}'s Spiel`;
-    gamePublicCheckbox.checked = true;
-    gamePasswordInput.value = '';
-    showModal(createGameModal);
-});
-
-
-
-createGameConfirm.addEventListener('click', () => {
-    const name = gameNameInput.value.trim() || 'Neues Spiel';
-    const isPublic = gamePublicCheckbox.checked;
-    const password = gamePasswordInput.value.trim();
-    
-    socket.emit('create_game', {
-        name,
-        is_public: isPublic,
-        password
-    });
-    
-    hideModal(createGameModal);
-});
-
-createGameCancel.addEventListener('click', () => {
-    hideModal(createGameModal);
-});
-
-joinGameConfirm.addEventListener('click', () => {
-    const password = joinPasswordInput.value.trim();
-    const isSpectator = document.getElementById('join-as-spectator').checked;
-    
-    // Prüfe ob es ein Join-Link oder Lobby-Join ist
-    if (pendingJoinGameId) {
-        socket.emit('join_game', {
-            game_id: pendingJoinGameId,
-            password,
-            is_spectator: isSpectator
-        });
-        pendingJoinGameId = null;
-    } else if (selectedGameForJoin) {
-        socket.emit('join_game', {
-            game_id: selectedGameForJoin.id,
-            password,
-            is_spectator: isSpectator
-        });
-    }
-    
-    hideModal(joinGameModal);
-});
-
-joinGameCancel.addEventListener('click', () => {
-    hideModal(joinGameModal);
-    selectedGameForJoin = null;
-    pendingJoinGameId = null;
-});
 
 // Handle game info response (für Join-Links)
-socket.on('game_info', (data) => {
-    // Zeige immer Modal für Spectator-Auswahl
-    pendingJoinGameId = data.game_id;
-    joinGameName.textContent = `Beitritt zu: ${data.name}${data.started ? ' (läuft bereits)' : ''}`;
-    
-    if (data.has_password) {
-        joinPasswordGroup.style.display = 'block';
-        joinPasswordInput.value = '';
-    } else {
-        joinPasswordGroup.style.display = 'none';
-    }
-    
-    // Spectator-Checkbox zurücksetzen
-    document.getElementById('join-as-spectator').checked = false;
-    
+socket.on('game_info_link_join', (game) => {
     window.ui.showServerLobby(); // Zeige Lobby im Hintergrund
-    showModal(joinGameModal);
+    window.ui.showJoinGameModal(game); // Zeige Join-Modal
 });
 
-socket.on('game_info_error', (data) => {
+// Handle game info error-response (für Join-Links)
+socket.on('game_info_link_join_error', (data) => {
     showNotification(data.message, 'error');
     window.ui.showServerLobby();
     clearUrlParams();
 });
 
-// Game Room
-socket.on('game_created', (data) => {
-    currentGameId = data.game_id;
-    currentGameCreator = data.game.creator;
-    setIsCreator(true);
-    updateGameRoom(data.game);
-    window.ui.showScreen(gameScreen);
-    showNotification('Spiel erstellt!', 'success');
-});
 
-socket.on('game_joined', (data) => {
-    currentGameId = data.game_id;
-    currentGameCreator = data.game.creator;
-    setIsCreator(data.game.creator === currentUsername);
-    const isSpectator = data.is_spectator || false;
-    
-    // Speichere Player-Status
-    if (data.player_statuses) {
-        playerStatuses = data.player_statuses;
-    }
-    
-    window.ui.showScreen(gameScreen);
-    clearUrlParams(); // Entferne Join-Parameter aus URL
-    
-    // Wenn Spiel NICHT läuft - normale Lobby
-    if (!data.game_started) {
-        updateGameRoom(data.game);
-        showNotification('Spiel beigetreten!', 'success');
-        return;
-    }
-    
-    // Spiel läuft bereits - initialisiere Spielzustand
-    gameTitle.textContent = data.game.name;
-    updatePlayersList(data.game.players, data.game.creator);
-    if (data.spectator_statuses) {
-        updateSpectatorsList(data.game.spectators || [], data.spectator_statuses);
-    }
-    
-    // Zeige Spielbereich
-    settingsPanel.style.display = 'none';
-    gamePlayPanel.style.display = 'block';
-    gameScreen.classList.add('playing');
-    
-    // Blende Spielerlisten aus
-    const playersSection = document.querySelector('.players-panel');
-    const spectatorsSection = document.getElementById('spectators-section');
-    if (playersSection) playersSection.style.display = 'none';
-    if (spectatorsSection) spectatorsSection.style.display = 'none';
-    
-    // Update game controls visibility
-    if (isCreator) {
-        pauseGameBtn.style.display = data.paused ? 'none' : 'inline-block';
-        resumeGameBtn.style.display = data.paused ? 'inline-block' : 'none';
-        resetLobbyBtn.style.display = 'inline-block';
-    } else {
-        pauseGameBtn.style.display = 'none';
-        resumeGameBtn.style.display = 'none';
-        resetLobbyBtn.style.display = 'none';
-    }
-    
-    // Pause-Status
-    if (data.paused) {
-        isPaused = true;
-        pauseOverlay.classList.add('active');
-    } else {
-        isPaused = false;
-        pauseOverlay.classList.remove('active');
-    }
-    
-    // Setze Czar-Info
-    if (data.czar) {
-        isCzar = data.is_czar;
-        if (isSpectator) {
-            czarText.textContent = `Card Czar: ${data.czar} (Du bist Zuschauer)`;
-        } else {
-            czarText.textContent = data.is_czar ? 
-                'Du bist der Card Czar dieser Runde!' : 
-                `Card Czar: ${data.czar}`;
-        }
-    }
-    
-    // Setze Scores
-    if (data.scores) {
-        updateScores(data.scores);
-    }
-    
-    // Setze Timer
-    if (data.timer !== undefined) {
-        updateTimerDisplay(data.timer, data.answer_time || data.czar_time || 60);
-    }
-    
-    // Zeige Frage wenn vorhanden
-    if (data.question) {
-        currentQuestion = data.question;
-        questionText.innerHTML = data.question.card_text.replace(/_____/g, '<span class="blank">_____</span>');
-        
-        if (cardsNeeded) {
-            cardsNeeded.textContent = data.question.num_blanks;
-        }
-        if (selectionMax) {
-            selectionMax.textContent = data.question.num_blanks;
-        }
-    }
-    
-    // Zeige Runden-Info
-    if (data.win_score && winScoreLabel) {
-        const maxRounds = data.max_rounds || 50;
-        const currentRound = data.current_round || 1;
-        winScoreLabel.textContent = `Spiel bis ${data.win_score} Punkte oder Runde ${currentRound}/${maxRounds}`;
-        winScoreLabel.style.display = 'block';
-    }
-    
-    // Zeige Hand-Karten nur für Spieler (nicht Spectators)
-    if (data.hand && !isSpectator) {
-        currentHand = data.hand;
-        displayHand();
-    } else {
-        selectedCards = [];
-        playerHand.innerHTML = '';
-    }
-    
-    // Phase-spezifischer Zustand
-    hideAllPhases();
-    timerDisplay.style.display = 'block';
-    
-    if (data.round_phase === 'answering') {
-        if (isSpectator) {
-            czarWaitingPhase.style.display = 'block';
-            czarWaitingTitle.textContent = 'Zuschauermodus';
-            czarWaitingMessage.textContent = 'Du beobachtest das Spiel. Die Spieler wählen ihre Karten aus...';
-        } else if (data.is_czar) {
-            czarWaitingPhase.style.display = 'block';
-            czarWaitingTitle.textContent = 'Du bist der Card Czar!';
-            czarWaitingMessage.textContent = 'Warte, während die anderen Spieler ihre Karten auswählen...';
-            if (data.submitted_count !== undefined && data.total_players !== undefined) {
-                submissionStatus.textContent = `${data.submitted_count}/${data.total_players} Spieler haben abgegeben`;
-            }
-        } else if (data.has_submitted) {
-            waitingVotePhase.style.display = 'block';
-        } else {
-            answerPhase.style.display = 'block';
-            submitAnswersBtn.disabled = false;
-        }
-    } else if (data.round_phase === 'voting') {
-        if (isSpectator) {
-            waitingVotePhase.style.display = 'block';
-            if (data.answer_options) {
-                displayAnswerOptions(data.answer_options, false);
-            }
-        } else if (data.is_czar) {
-            votingPhase.style.display = 'block';
-            if (data.answer_options) {
-                displayAnswerOptions(data.answer_options, true);
-            }
-        } else {
-            waitingVotePhase.style.display = 'block';
-            if (data.answer_options) {
-                displayAnswerOptions(data.answer_options, false);
-            }
-        }
-    } else if (data.round_phase === 'result') {
-        resultPhase.style.display = 'block';
-    }
-    
-    const message = isSpectator ? 
-        'Als Zuschauer beigetreten!' : 
-        'Spiel beigetreten! Du spielst ab der nächsten Runde mit.';
-    showNotification(message, 'success');
-});
 
 socket.on('player_joined', (data) => {
     // Set new player as connected
@@ -680,7 +307,7 @@ socket.on('player_joined', (data) => {
     // Update Creator falls sich geändert hat
     if (data.creator) {
         currentGameCreator = data.creator;
-        setIsCreator(currentGameCreator === currentUsername);
+        setIsCreator(currentGameCreator === window.currentUsername);
     }
     
     const message = data.is_spectator ? 
@@ -701,7 +328,7 @@ socket.on('player_status_changed', (data) => {
     // Update Creator falls vorhanden (könnte sich durch Disconnects geändert haben)
     if (data.creator !== undefined) {
         currentGameCreator = data.creator;
-        setIsCreator(currentGameCreator === currentUsername);
+        setIsCreator(currentGameCreator === window.currentUsername);
     }
     
     // Refresh players list using current DOM state
@@ -727,9 +354,9 @@ socket.on('player_left', (data) => {
     showNotification(`${data.username} hat das Spiel verlassen`, 'info');
     
     // Aktualisiere Creator (könnte sich geändert haben)
-    const wasCreator = isCreator;
+    const wasCreator = window.isCreator;
     currentGameCreator = data.creator;
-    setIsCreator(currentGameCreator === currentUsername);
+    setIsCreator(currentGameCreator === window.currentUsername);
     
     // Update UI
     updatePlayersList(data.players, data.creator);
@@ -740,7 +367,7 @@ socket.on('player_left', (data) => {
     }
     
     // Zeige Benachrichtigung wenn ich der neue Creator bin
-    if (isCreator && !wasCreator) {
+    if (window.isCreator && !wasCreator) {
         showNotification('Du bist jetzt der neue Spielleiter!', 'success');
         
         // Update Game Control Buttons wenn Spiel läuft
@@ -760,7 +387,7 @@ socket.on('player_left', (data) => {
                 input.disabled = false;
             });
         }
-    } else if (!isCreator && wasCreator) {
+    } else if (!window.isCreator && wasCreator) {
         // Ich bin nicht mehr Creator
         const gameIsRunning = gamePlayPanel.style.display === 'block';
         if (gameIsRunning) {
@@ -783,9 +410,9 @@ socket.on('player_left', (data) => {
 socket.on('creator_changed', (data) => {
     // Creator wurde automatisch geändert (z.B. nach Disconnect des alten Creators)
     currentGameCreator = data.creator;
-    setIsCreator(currentGameCreator === currentUsername);
+    setIsCreator(currentGameCreator === window.currentUsername);
     
-    if (isCreator) {
+    if (window.isCreator) {
         showNotification('Du bist jetzt der neue Spielleiter!', 'success');
     } else {
         showNotification(`${data.creator} ist jetzt der neue Spielleiter`, 'info');
@@ -794,7 +421,7 @@ socket.on('creator_changed', (data) => {
     // Update UI - Settings Inputs
     const settingsInputs = document.querySelectorAll('.settings-input');
     settingsInputs.forEach(input => {
-        input.disabled = !isCreator;
+        input.disabled = !window.isCreator;
     });
     
     // Prüfe ob Spiel gestartet ist (gamePlayPanel sichtbar)
@@ -802,7 +429,7 @@ socket.on('creator_changed', (data) => {
     
     if (gameIsRunning) {
         // Update Game Control Buttons (während des Spiels)
-        if (isCreator) {
+        if (window.isCreator) {
             pauseGameBtn.style.display = isPaused ? 'none' : 'inline-block';
             resumeGameBtn.style.display = isPaused ? 'inline-block' : 'none';
             resetLobbyBtn.style.display = 'inline-block';
@@ -813,7 +440,7 @@ socket.on('creator_changed', (data) => {
         }
     } else {
         // Update Creator-Info und Start Button (Lobby)
-        if (isCreator) {
+        if (window.isCreator) {
             creatorInfo.style.display = 'none';
             startGameBtn.style.display = 'block';
         } else {
@@ -861,272 +488,6 @@ leaveGameBtn.addEventListener('click', async () => {
     }
 });
 
-socket.on('left_game', () => {
-    currentGameId = null;
-    currentGameCreator = null;
-    setIsCreator(false);
-    window.ui.showServerLobby();
-});
-
-function updateGameRoom(game, spectatorStatuses = {}) {
-    gameTitle.textContent = game.name;
-    
-    // Speichere Creator
-    currentGameCreator = game.creator;
-    
-    // Update players
-    updatePlayersList(game.players, game.creator);
-    
-    // Update spectators
-    updateSpectatorsList(game.spectators || [], spectatorStatuses);
-    
-    // Update join link
-    const joinUrl = `${window.location.origin}?join=${game.id}`;
-    joinLinkInput.value = joinUrl;
-    
-    // Update settings
-    setIsCreator(game.creator === currentUsername);
-    
-    // Lade Settings über game-settings.js
-    if (window.gameSettings) {
-        window.gameSettings.load(game);
-        window.gameSettings.updateAccess(isCreator);
-    }
-    
-    // Show game or settings
-    if (game.started) {
-        console.log('updateGameRoom: game.started = true, hiding player lists');
-        settingsPanel.style.display = 'none';
-        gamePlayPanel.style.display = 'block';
-        
-        // Blende Spielerlisten aus während des Spiels
-        const playersSection = document.querySelector('.players-panel');
-        const spectatorsSection = document.getElementById('spectators-section');
-        if (playersSection) playersSection.style.display = 'none';
-        if (spectatorsSection) spectatorsSection.style.display = 'none';
-        
-        // Update game controls visibility
-        if (isCreator) {
-            pauseGameBtn.style.display = 'inline-block';
-            resumeGameBtn.style.display = 'none';
-            resetLobbyBtn.style.display = 'inline-block';
-        } else {
-            pauseGameBtn.style.display = 'none';
-            resumeGameBtn.style.display = 'none';
-            resetLobbyBtn.style.display = 'none';
-        }
-    } else {
-        console.log('updateGameRoom: game.started = false, showing player lists');
-        settingsPanel.style.display = 'block';
-        gamePlayPanel.style.display = 'none';
-        
-        // Zeige Spielerlisten in der Lobby
-        const playersSection = document.querySelector('.players-panel');
-        const spectatorsSection = document.getElementById('spectators-section');
-        if (playersSection) {
-            playersSection.style.display = 'block';
-            console.log('Set playersSection to block, current display:', playersSection.style.display);
-        } else {
-            console.log('ERROR: playersSection not found!');
-        }
-        if (spectatorsSection) {
-            spectatorsSection.style.display = 'block';
-            console.log('Set spectatorsSection to block, current display:', spectatorsSection.style.display);
-        } else {
-            console.log('ERROR: spectatorsSection not found!');
-        }
-    }
-}
-
-function updatePlayersList(players, creator) {
-    playersListDiv.innerHTML = '';
-    players.forEach(player => {
-        const item = document.createElement('div');
-        item.className = 'player-item';
-        if (creator && player === creator) {
-            item.classList.add('creator');
-        }
-        if (player === currentUsername) {
-            item.classList.add('current-player');
-        }
-        
-        // Status-Indikator
-        const status = playerStatuses[player] || 'connected';
-        let statusIcon = '';
-        if (status === 'disconnecting') {
-            statusIcon = '<span class="status-indicator disconnecting" title="Verbindung unterbrochen...">⏳</span>';
-        } else if (status === 'connected') {
-            statusIcon = '<span class="status-indicator connected" title="Verbunden">●</span>';
-        }
-        
-        // Kick-Button für Creator (nur wenn nicht selbst, nicht Creator und nicht gestartet)
-        let kickButton = '';
-        if (isCreator && player !== currentUsername && player !== currentGameCreator && currentGameCreator === currentUsername) {
-            kickButton = `<button class="btn-kick" onclick="kickPlayer('${escapeHtml(player).replace(/'/g, "\\'")}')">Kick</button>`;
-        }
-        
-        // Force-Role Button für Creator bei anderen Spielern (nur in Lobby)
-        let forceRoleButton = '';
-        if (isCreator && player !== currentUsername && settingsPanel.style.display !== 'none') {
-            forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(player).replace(/'/g, "\\'")}')\" title="Zu Zuschauer verschieben">👁️</button>`;
-        }
-        
-        // Toggle zu Spectator für eigenen Spieler (nicht während Spiel läuft)
-        let toggleButton = '';
-        if (player === currentUsername && settingsPanel.style.display !== 'none') {
-            toggleButton = `<button class="btn-toggle-role" onclick="toggleRole()" title="Zu Zuschauer wechseln">👁️</button>`;
-        }
-        
-        item.innerHTML = `
-            <span>${statusIcon} ${escapeHtml(player)}${player === currentUsername ? ' (Du)' : ''}</span>
-            <span class="player-actions">
-                ${creator && player === creator ? '<span class="crown">👑</span>' : ''}
-                ${toggleButton}
-                ${forceRoleButton}
-                ${kickButton}
-            </span>
-        `;
-        
-        // Wende Spielerfarbe an
-        applyPlayerColor(item, player);
-        
-        playersListDiv.appendChild(item);
-    });
-}
-
-function updateSpectatorsList(spectators, spectatorStatuses = {}) {
-    const spectatorsSection = document.getElementById('spectators-section');
-    const spectatorsListDiv = document.getElementById('spectators-list');
-    
-    if (!spectators || spectators.length === 0) {
-        spectatorsSection.style.display = 'none';
-        return;
-    }
-    
-    spectatorsSection.style.display = 'block';
-    spectatorsListDiv.innerHTML = '';
-    
-    spectators.forEach(spectator => {
-        const item = document.createElement('div');
-        item.className = 'player-item spectator-item';
-        if (spectator === currentUsername) {
-            item.classList.add('current-player');
-        }
-        
-        // Status-Indikator
-        const status = spectatorStatuses[spectator] || 'connected';
-        let statusIcon = '';
-        if (status === 'disconnecting') {
-            statusIcon = '<span class="status-indicator disconnecting" title="Verbindung unterbrochen...">⏳</span>';
-        } else if (status === 'connected') {
-            statusIcon = '<span class="status-indicator connected" title="Verbunden">●</span>';
-        }
-        
-        // Kick-Button für Creator (nicht für sich selbst oder den Creator)
-        let kickButton = '';
-        if (isCreator && spectator !== currentUsername && spectator !== currentGameCreator) {
-            kickButton = `<button class="btn-kick" onclick="kickPlayer('${escapeHtml(spectator).replace(/'/g, "\\'")}')">Kick</button>`;
-        }
-        
-        // Force-Role Button für Creator bei anderen Spectators (nur in Lobby)
-        let forceRoleButton = '';
-        if (isCreator && spectator !== currentUsername && settingsPanel.style.display !== 'none') {
-            forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(spectator).replace(/'/g, "\\'")}')\" title="Zu Spieler verschieben">🎮</button>`;
-        }
-        
-        // Toggle zu Spieler für eigenen Spectator (nicht während Spiel läuft)
-        let toggleButton = '';
-        if (spectator === currentUsername && settingsPanel.style.display !== 'none') {
-            toggleButton = `<button class="btn-toggle-role" onclick="toggleRole()" title="Zu Spieler wechseln">🎮</button>`;
-        }
-        
-        item.innerHTML = `
-            <span>${statusIcon} ${escapeHtml(spectator)}${spectator === currentUsername ? ' (Du)' : ''} <span style="opacity: 0.6; font-size: 11px;">👁️</span></span>
-            <span class="player-actions">
-                ${toggleButton}
-                ${forceRoleButton}
-                ${kickButton}
-            </span>
-        `;
-        
-        // Wende Spielerfarbe an
-        applyPlayerColor(item, spectator);
-        
-        spectatorsListDiv.appendChild(item);
-    });
-}
-
-copyLinkBtn.addEventListener('click', () => {
-    joinLinkInput.select();
-    navigator.clipboard.writeText(joinLinkInput.value);
-    showNotification('Link kopiert!', 'success');
-});
-
-// Kick Player Function
-async function kickPlayer(username) {
-    if (await customConfirm(`${username} wird aus dem Spiel entfernt und kann nicht mehr zurückkehren.`, `Spieler ${username} entfernen?`)) {
-        socket.emit('kick_player', { username: username });
-    }
-}
-
-// Toggle zwischen Spieler und Spectator
-function toggleRole() {
-    socket.emit('toggle_role');
-}
-
-// Force Role Change (nur für Creator)
-function forceRole(username) {
-    socket.emit('force_role', { username: username });
-}
-
-socket.on('role_changed', (data) => {
-    // Update Listen
-    updatePlayersList(data.players, currentGameCreator);
-    updateSpectatorsList(data.spectators, {});
-    
-    // Notification
-    if (data.username === currentUsername) {
-        const role = data.is_spectator ? 'Zuschauer' : 'Spieler';
-        if (data.forced_by) {
-            showNotification(`${data.forced_by} hat dich zu ${role} verschoben`, 'info');
-        } else {
-            showNotification(`Du bist jetzt ${role}`, 'success');
-        }
-    } else {
-        const role = data.is_spectator ? 'Zuschauer' : 'Spieler';
-        showNotification(`${data.username} ist jetzt ${role}`, 'info');
-    }
-});
-
-// Start Game Button Handler (in game-settings.js)
-
-socket.on('game_started', (data) => {
-    // Update Creator info
-    currentGameCreator = data.game.creator;
-    setIsCreator(data.game.creator === currentUsername);
-    
-    settingsPanel.style.display = 'none';
-    gamePlayPanel.style.display = 'block';
-    gameScreen.classList.add('playing');
-    showNotification('Spiel gestartet!', 'success');
-    
-    // Blende Spielerlisten aus während des Spiels
-    const playersSection = document.querySelector('.players-panel');
-    const spectatorsSection = document.getElementById('spectators-section');
-    if (playersSection) playersSection.style.display = 'none';
-    if (spectatorsSection) spectatorsSection.style.display = 'none';
-    
-    // Show game controls for creator
-    if (isCreator) {
-        pauseGameBtn.style.display = 'inline-block';
-        resumeGameBtn.style.display = 'none';
-        resetLobbyBtn.style.display = 'inline-block';
-    } else {
-        pauseGameBtn.style.display = 'none';
-        resumeGameBtn.style.display = 'none';
-        resetLobbyBtn.style.display = 'none';
-    }
-});
 
 // Game Play Variables
 let currentHand = [];
@@ -1673,7 +1034,7 @@ socket.on('game_paused', (data) => {
     isPaused = true;
     pauseOverlay.style.display = 'flex';
     pauseGameBtn.style.display = 'none';
-    resumeGameBtn.style.display = isCreator ? 'inline-block' : 'none';
+    resumeGameBtn.style.display = window.isCreator ? 'inline-block' : 'none';
     
     // Zeige verbleibende Zeit an
     if (data.time_left !== undefined) {
@@ -1693,7 +1054,7 @@ socket.on('game_paused', (data) => {
 socket.on('game_resumed', (data) => {
     isPaused = false;
     pauseOverlay.style.display = 'none';
-    pauseGameBtn.style.display = isCreator ? 'inline-block' : 'none';
+    pauseGameBtn.style.display = window.isCreator ? 'inline-block' : 'none';
     resumeGameBtn.style.display = 'none';
     
     // Aktiviere Interaktionen wieder
@@ -1744,7 +1105,7 @@ socket.on('game_reset_to_lobby', (data) => {
 socket.on('game_state_update', (data) => {
     // Aktualisiere Spielinformationen (z.B. nach Spielende wenn zurück zur Lobby)
     currentGameCreator = data.game.creator;
-    setIsCreator(currentGameCreator === currentUsername);
+    setIsCreator(currentGameCreator === window.currentUsername);
     
     if (data.player_statuses) {
         playerStatuses = data.player_statuses;

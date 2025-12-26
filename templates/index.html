@@ -10,8 +10,8 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
-    <!-- Username Screen -->
-    <div id="username-screen" class="screen active">
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen active">
         <div class="container">
             <h1>Cards Against Everyone</h1>
             <div class="username-form">
@@ -308,6 +308,15 @@
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/ui/ui_general.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/ui_login.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui/ui_serverlobby.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/ui_gameroom.js') }}"></script>
+
+
+    <script src="{{ url_for('static', filename='js/ui/modals/modal_general.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/modals/modal_joingame.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui/modals/modal_creategame.js') }}"></script>
+
+
 </body>
 </html>
