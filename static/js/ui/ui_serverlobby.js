@@ -65,15 +65,13 @@ logoutBtn.addEventListener('click', async () => {
         clearSavedUsername();
         
         // Verlasse ggf. Spiel
-        if (currentGameId) {
+        if (window.currentGameData) {
+            window.currentGameData = null;
             socket.emit('leave_game');
         }
         
         // Reset Zustand
         window.currentUsername = null;
-        currentGameId = null;
-        currentGameCreator = null;
-        setIsCreator(false);
         
         // Gehe zu Username-Screen
         window.ui.showLoginScreen();

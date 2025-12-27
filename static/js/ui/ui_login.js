@@ -53,7 +53,7 @@ socket.on('username_error', (data) => {
     
     // Wenn wir bereits im Spiel waren aber Session abgelaufen ist (Server-Neustart),
     // lösche gespeicherte Daten und lade neu
-    if (data.message.includes('abgelaufen') && currentGameId) {
+    if (data.message.includes('abgelaufen')) {
         clearSavedUsername();
         setTimeout(() => location.reload(), 1000);
     }

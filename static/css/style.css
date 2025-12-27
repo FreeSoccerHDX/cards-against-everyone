@@ -11,6 +11,10 @@ body {
     color: #333;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .screen {
     display: none;
     min-height: 100vh;
@@ -530,6 +534,10 @@ button {
     background: #4caf50;
 }
 
+.notification.warning {
+    background: #ff9800;
+}
+
 .error-message {
     color: #f44336;
     font-size: 14px;
@@ -595,7 +603,6 @@ button {
     position: absolute;
     bottom: 5px;
     right: 5px;
-    display: none;
 }
 
 .timer-circle {
@@ -668,7 +675,6 @@ button {
     color: #999;
     margin-bottom: 5px;
     font-weight: 500;
-    display: none;
 }
 
 .scores-panel {

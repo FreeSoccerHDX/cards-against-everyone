@@ -14,26 +14,36 @@ const settingsRoundDelay = document.getElementById('settings-round-delay');
 const creatorInfo = document.getElementById('creator-info');
 const startGameBtn = document.getElementById('start-game-btn');
 
+
+const settingsInputs = document.querySelectorAll('.settings-input');
+
 // Auto-Save Mechanismus für Settings
 let settingsTimeout = null;
 
 function autoSaveSettings() {
-    console.log('autoSaveSettings called, isCreator:', window.isCreator);
-    
-    // Nur Creator kann Settings ändern
-    if (!window.isCreator) {
-        console.log('Not creator, skipping save');
-        return;
-    }
-    
+
     clearTimeout(settingsTimeout);
     settingsTimeout = setTimeout(() => {
+        const settingsData = {
+            gameName: settingsName.value.trim(),
+            publicVisible: settingsPublic.checked,
+            password: settingsPassword.value.trim(),
+            maxWhiteCardsPerPlayer: parseInt(settingsMaxCards.value),
+            maxPointsToWin: parseInt(settingsWinScore.value),
+            maxRounds: parseInt(settingsMaxRounds.value),
+            timeToChooseWhiteCards: parseInt(settingsAnswerTime.value),
+            timeToChooseWinner: parseInt(settingsCzarTime.value),
+            timeAfterWinnerChosen: parseInt(settingsRoundDelay.value)
+        };
+        window.socket.emit('update_settings', settingsData);
+
+        /*
         const data = {
             name: settingsName.value.trim(),
             is_public: settingsPublic.checked,
             password: settingsPassword.value.trim(),
             settings: {
-                max_cards: parseInt(settingsMaxCards.value),
+                maxWhiteCardsPerPlayer: parseInt(settingsMaxCards.value),
                 win_score: parseInt(settingsWinScore.value),
                 max_rounds: parseInt(settingsMaxRounds.value),
                 answer_time: parseInt(settingsAnswerTime.value),
@@ -47,7 +57,7 @@ function autoSaveSettings() {
             window.socket.emit('update_settings', data);
         } else {
             console.error('Socket not available!');
-        }
+        }*/
     }, 500); // 500ms Debounce
 }
 
@@ -73,30 +83,29 @@ function initializeSettingsListeners() {
 
 // Funktion um Settings-Werte aus einem Game-Objekt zu laden
 function loadGameSettings(game) {
-    settingsName.value = game.name;
-    settingsPublic.checked = game.is_public;
-    settingsPassword.value = game.password || '';
-    settingsMaxCards.value = game.settings.max_cards;
-    settingsWinScore.value = game.settings.win_score;
-    settingsMaxRounds.value = game.settings.max_rounds || 50;
-    settingsAnswerTime.value = game.settings.answer_time || 60;
-    settingsCzarTime.value = game.settings.czar_time || 30;
-    settingsRoundDelay.value = game.settings.round_delay || 5;
+    settingsName.value = game.settings.gameName;
+    settingsPublic.checked = game.settings.publicVisible;
+    settingsPassword.value = game.settings.password || '';
+    settingsMaxCards.value = game.settings.maxWhiteCardsPerPlayer;
+    settingsWinScore.value = game.settings.maxPointsToWin || 5;
+    settingsMaxRounds.value = game.settings.maxRounds || 25;
+    settingsAnswerTime.value = game.settings.timeToChooseWhiteCards || 60;
+    settingsCzarTime.value = game.settings.timeToChooseWinner || 60;
+    settingsRoundDelay.value = game.settings.timeAfterWinnerChosen || 15;
 }
 
 // Funktion um Settings-Inputs basierend auf Creator-Status zu aktivieren/deaktivieren
 function updateSettingsAccess(isCreator) {
-    const settingsInputs = document.querySelectorAll('.settings-input');
     settingsInputs.forEach(input => {
         input.disabled = !isCreator;
     });
     
     if (isCreator) {
-        creatorInfo.style.display = 'none';
-        startGameBtn.style.display = 'block';
+        creatorInfo.classList.add('hidden');
+        startGameBtn.classList.remove('hidden');
     } else {
-        creatorInfo.style.display = 'block';
-        startGameBtn.style.display = 'none';
+        creatorInfo.classList.remove('hidden');
+        startGameBtn.classList.add('hidden');
     }
 }
 

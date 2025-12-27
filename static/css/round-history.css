@@ -73,13 +73,11 @@
 
 .history-meta-item strong {
     font-weight: 600;
-    color: #333;
 }
 
 .player-badge {
     padding: 4px 10px;
     border-radius: 12px;
-    font-size: 12px;
     font-weight: 600;
     display: inline-block;
 }

@@ -30,7 +30,10 @@ function generatePlayerColor(username) {
 
 function getContrastColor(h, s, l) {
     // Wenn Helligkeit unter 60% ist, nutze weiß, sonst schwarz
-    return l < 60 ? '#ffffff' : '#000000';
+    const oppositeHue = (h + 180) % 360;
+    const oppositeColor = `hsl(${oppositeHue}, ${s}%, ${l}%)`;
+    return oppositeColor;
+    //return l < 60 ? '#ffffff' : '#000000';
 }
 
 function applyPlayerColor(element, username) {
