@@ -1,83 +1,140 @@
 # Cards Against Everyone
 
-Ein multiplayer "Cards Against Humanity"-Spiel mit Flask, Socket.IO und Docker.
+**Cards Against Everyone** ist ein webbasiertes Multiplayer-Partyspiel, inspiriert von "Cards Against Humanity". Die Anwendung nutzt Flask, Flask-SocketIO und Docker und ermöglicht es mehreren Spielern, gemeinsam in Echtzeit zu spielen.
+
+---
+
+## Inhaltsverzeichnis
+
+- [Features](#features)
+- [Lobby- & Spieleinstellungen](#lobby--spieleinstellungen)
+- [Installation](#installation)
+  - [Mit Docker (empfohlen)](#mit-docker-empfohlen)
+  - [Ohne Docker](#ohne-docker)
+- [Spielanleitung](#spielanleitung)
+- [Technologien](#technologien)
+- [Projektstruktur](#projektstruktur)
+- [Entwicklung & Betrieb](#entwicklung--betrieb)
+- [Lizenz](#lizenz)
+
+---
 
 ## Features
 
-- **Nutzerverwaltung**: Eindeutige Nutzernamen, automatische Reconnect-Funktion (30s Timeout)
-- **Lobby-System**: Öffentliche Spiele anzeigen oder eigene Spiele erstellen
-- **Spielerstellung**: Name, Sichtbarkeit und Passwortschutz konfigurierbar
-- **Live-Einstellungen**: Spieleinstellungen werden automatisch gespeichert
-- **Join-Links**: Direkter Beitritt über teilbare Links
-- **Host-Migration**: Wenn der Ersteller geht, wird der nächste Spieler zum Host
+- **Eindeutige Nutzernamen** mit automatischer Wiederverbindung (30s Timeout)
+- **Lobby-System**: Öffentliche Spiele durchsuchen oder eigene erstellen
+- **Flexible Spielerstellung**: Name, Sichtbarkeit, Passwortschutz
+- **Live-Einstellungen**: Änderungen werden automatisch gespeichert
+- **Join-Links**: Einfache Einladung per Link
+- **Host-Migration**: Automatischer Host-Wechsel, falls der Ersteller das Spiel verlässt
+- **Echtzeit-Kommunikation** über WebSockets
 
-## Installation und Start
+---
+
+## Lobby- & Spieleinstellungen
+
+Beim Erstellen oder Verwalten einer Lobby können folgende Einstellungen vorgenommen werden:
+
+- **Spielname:** Individueller Name für das Spiel.
+- **Sichtbarkeit:** Öffentlich (in der Lobby sichtbar) oder privat (nur per Link beitretbar).
+- **Passwort:** Optionaler Passwortschutz für private Spiele.
+- **Maximale Spieleranzahl:** Begrenzung der Teilnehmer (z.B. 3–10 Spieler).
+- **Anzahl Handkarten:** Wie viele weiße Karten jeder Spieler auf der Hand hat.
+- **Siegpunktzahl:** Anzahl der Punkte, die zum Gewinnen benötigt werden.
+- **Zeitlimit pro Runde:** Maximale Zeit, um Karten auszuwählen (optional).
+- **Kartensätze:** Auswahl, welche Kartendecks (z.B. Standard, Erweiterungen) verwendet werden.
+- **Host-Wechsel:** Automatische Übertragung der Host-Rolle, falls der aktuelle Host das Spiel verlässt.
+
+Alle Einstellungen können (sofern Host) auch während des Spiels angepasst werden, sofern dies nicht den Spielablauf stört.
+
+---
+
+## Installation
 
 ### Mit Docker (empfohlen)
 
-```bash
-# Container bauen und starten
-docker-compose up --build
+1. Repository klonen:
+    ```bash
+    git clone https://github.com/dein-benutzername/cards-against-everyone.git
+    cd cards-against-everyone
+    ```
+2. Container bauen und starten:
+    ```bash
+    docker-compose up --build
+    ```
+3. Anwendung im Browser öffnen: [http://localhost:5000](http://localhost:5000)
 
-# Im Hintergrund ausführen
+**Im Hintergrund starten:**
+```bash
 docker-compose up -d --build
 ```
 
-Die Anwendung ist dann unter `http://localhost:5000` erreichbar.
-
 ### Ohne Docker
 
-```bash
-# Abhängigkeiten installieren
-pip install -r requirements.txt
+1. Abhängigkeiten installieren:
+    ```bash
+    pip install -r requirements.txt
+    ```
+2. Server starten:
+    ```bash
+    python app.py
+    ```
+3. Anwendung im Browser öffnen: [http://localhost:5000](http://localhost:5000)
 
-# Server starten
-python app.py
-```
+---
 
-## Technologie-Stack
+## Spielanleitung
 
-- **Backend**: Flask + Flask-SocketIO
-- **Frontend**: Vanilla JavaScript + Socket.IO Client
-- **Container**: Docker + Docker Compose
-- **Real-time**: WebSockets
+1. **Nutzername wählen:** Beim ersten Besuch festlegen.
+2. **Lobby:** Öffentliche Spiele durchsuchen oder ein neues Spiel erstellen.
+3. **Spiel erstellen:** Name, Sichtbarkeit und optional Passwort festlegen.
+4. **Einstellungen:** Kartenanzahl, Siegpunkte etc. (nur Host).
+5. **Freunde einladen:** Über Join-Link oder Lobby.
+6. **Spiel starten:** Nur der Host, mindestens 3 Spieler erforderlich.
+7. **Spielablauf:** Schwarze Karte lesen, weiße Karten auswählen, Host wählt die beste Antwort.
 
-## Spielablauf
+---
 
-1. **Nutzername festlegen** beim ersten Besuch
-2. **Lobby**: Öffentliche Spiele anzeigen oder eigenes Spiel erstellen
-3. **Spiel erstellen**: Name, Sichtbarkeit, Passwort konfigurieren
-4. **Einstellungen**: Kartenanzahl, Siegpunkte, etc. (nur Host)
-5. **Spieler einladen**: Via Join-Link oder Lobby
-6. **Spiel starten**: Nur der Host kann das Spiel starten (mindestens 3 Spieler)
+## Technologien
 
-## Entwicklung
+- **Backend:** Python, Flask, Flask-SocketIO
+- **Frontend:** HTML, CSS, Vanilla JavaScript, Socket.IO Client
+- **Containerisierung:** Docker, Docker Compose
+- **Echtzeit:** WebSockets
 
-Die Anwendung läuft im Development-Modus mit Auto-Reload:
+---
 
-```bash
-# Logs anzeigen
-docker-compose logs -f
-
-# Container stoppen
-docker-compose down
-```
-
-## Struktur
+## Projektstruktur
 
 ```
 cards-against-everyone/
-├── app.py                 # Flask Backend mit Socket.IO
-├── requirements.txt       # Python Dependencies
-├── Dockerfile            # Container-Definition
-├── docker-compose.yml    # Docker Compose Config
+├── app.py                 # Flask-Backend mit Socket.IO
+├── requirements.txt       # Python-Abhängigkeiten
+├── Dockerfile             # Container-Definition
+├── docker-compose.yml     # Docker Compose Konfiguration
 ├── templates/
-│   └── index.html        # HTML Template
+│   └── index.html         # Haupt-HTML-Template
 └── static/
-    ├── style.css         # Styling
-    └── script.js         # Frontend-Logik
+    ├── style.css          # CSS-Styles
+    └── script.js          # Frontend-Logik
 ```
+
+---
+
+## Entwicklung & Betrieb
+
+- **Logs anzeigen:**  
+  ```bash
+  docker-compose logs -f
+  ```
+- **Container stoppen:**  
+  ```bash
+  docker-compose down
+  ```
+- **Hot-Reload im Development-Modus** (automatisch aktiviert)
+
+---
 
 ## Lizenz
 
-MIT
+MIT License – siehe [LICENSE](LICENSE) für Details.
