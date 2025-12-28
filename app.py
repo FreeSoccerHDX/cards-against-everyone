@@ -1,8 +1,6 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
-import uuid
 import time
-import random
 import eventlet
 from questions import CARDS_QUESTIONS
 from answers import CARDS_ANSWERS

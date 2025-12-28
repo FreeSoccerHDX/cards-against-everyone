@@ -288,7 +288,7 @@ socket.on('timer_sync', (data) => {
 
 // Game Room joined
 socket.on('game_joined', (game) => {
-    console.log(game);
+    setInviteLinkVisibility(false);
     showGameScreen(game);
     showNotification('Spiel beigetreten!', 'success');
 });
@@ -736,7 +736,6 @@ socket.on('game_reset_to_lobby', (game) => {
 
 
 function updateLobbyPlayerList(game) {
-    let isCreator = (game.owner == window.currentUsername);
     let player_status = game.player_status || {};
     let spectators = game.spectators || [];
     let active_players = game.active_players || [];
@@ -750,6 +749,8 @@ function updateLobbyPlayerList(game) {
     spectatorsSection.classList.toggle('hidden', spectators.length === 0);
 
     allMembers.forEach(player => {
+        
+        let isCreator = (player == window.currentUsername);
         let isCurrentPlayer = (player == window.currentUsername);
         let isSpectator = spectators.includes(player);
         let connection_status = player_status[player] || 'connected';
@@ -787,12 +788,12 @@ function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connect
     // Kick-Button für Creator (nur wenn nicht selbst, nicht Creator und nicht gestartet)
     let kickButton = '';
     if (canKick) {
-        kickButton = `<button class="btn-kick" onclick="kickPlayer('${escapeHtml(player).replace(/'/g, "\\'")}')">Kick</button>`;
+        kickButton = `<button class="btn-kick" onclick="kickPlayer('${escapeHtml(name).replace(/'/g, "\\'")}')">Kick</button>`;
     }
     // Force-Role Button für Creator bei anderen Spielern (nur in Lobby)
     let forceRoleButton = '';
     if (canForceRole) {
-        forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(player).replace(/'/g, "\\'")}')\" title="Zu Zuschauer verschieben">👁️</button>`;
+        forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(name).replace(/'/g, "\\'")}')\" title="Zu Zuschauer verschieben">👁️</button>`;
     }
 
     // Toggle zu Spieler für eigenen Spectator (nicht während Spiel läuft)
@@ -847,7 +848,7 @@ function displayRoundHistory(history) {
         
         card.innerHTML = `
             <div class="history-card-header">
-                <span class="round-number">Runde ${round.round}</span>
+                <span class="round-number">Runde ${round.round+1}</span>
             </div>
             <div class="history-question-filled">
                 ${filledQuestion}
@@ -866,6 +867,23 @@ function displayRoundHistory(history) {
         
         container.appendChild(card);
     });
+}
+
+const toggleLinkBtn = document.getElementById('toggle-link-btn');
+let linkVisible = false;
+toggleLinkBtn.addEventListener('click', function() {
+    setInviteLinkVisibility(!linkVisible);
+});
+
+function setInviteLinkVisibility(visible) {
+    linkVisible = visible;
+    if (linkVisible) {
+        joinLinkInput.type = 'text';
+        toggleLinkBtn.textContent = 'Verstecken';
+    } else {
+        joinLinkInput.type = 'password';
+        toggleLinkBtn.textContent = 'Anzeigen';
+    }
 }
 
 copyLinkBtn.addEventListener('click', () => {

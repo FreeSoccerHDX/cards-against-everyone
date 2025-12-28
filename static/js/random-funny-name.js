@@ -17,6 +17,16 @@ window.socket.on('funny_name_used_response', (data) => {
 });
 
 const funnyNames = [
+    "Harriger Topf",
+    "Friedrich Miau-zart",
+    "Wolfgang Amadeus Miezart",
+    "Han Solo Cup",
+    "Otter Space Odyssey",
+    "Katze Blanchettschimmel",
+    "Bruce Willnich",
+    "Chuck Norrischt",
+    "Harry Pothead",
+    "Willy Bonker",
     "James Blond",
     "Elon Matsch",
     "Brad Shit",

@@ -515,6 +515,7 @@ button {
 .game-actions {
     text-align: center;
     margin-top: 30px;
+    margin-bottom: 30px;
 }
 
 /* Notification */
@@ -947,8 +948,20 @@ button {
     margin: 0px;
 }
 
+.game-list-header {
+    display: flex;
+    flex: space-between;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+
+    .game-list-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
     .screen {
         padding: 10px;
     }
@@ -972,7 +985,7 @@ button {
     .question-card {
         font-size: 16px;
         padding: 20px;
-        padding-top: 10px;
+        padding-top: 35px;
         padding-bottom: 70px;
         min-height: 120px;
     }

@@ -39,7 +39,10 @@
             </div>
 
             <div class="games-list">
-                <h2>Öffentliche Spiele</h2>
+                <div class="game-list-header">
+                    <h2 style="margin-bottom: 0px;margin-left: 0px;padding: 10px 16px;font-size: 1.1em;">Öffentliche Spiele</h2>
+                    <input type="text" id="game-search-input" placeholder="Spiel suchen..." style="margin-left: 0px; width: 400px; padding: 10px 16px; border-radius: 8px; border: 1.5px solid #bbb; font-size: 1.1em; box-shadow: 0 1px 4px rgba(0,0,0,0.06); background: #fafbfc;">
+                </div>                
                 <div id="public-games">
                     <p class="empty-message">Keine öffentlichen Spiele verfügbar</p>
                 </div>
@@ -99,79 +102,88 @@
             </div>
 
             <!-- Spiel Lobby -->
-            <div id="game-lobby-content" class="game-content hidden">
-                <!-- Linke Seite: Spieler -->
-                <div class="players-panel">
-                    <h2>Spieler</h2>
-                    <!-- active players -->
-                    <div id="players-list"></div>
+            <div id="game-lobby-content" class="hidden">
+                
+                
+                <div class="game-content">
 
-                    <!-- spectators -->
-                    <div id="spectators-section" class="hidden" style="margin-top: 20px;">
-                        <h3 style="font-size: 14px; color: #999; margin-bottom: 8px;">Zuschauer</h3>
-                        <div id="spectators-list"></div>
-                    </div>
-                    <div class="game-link">
-                        <label>Beitrittslink:</label>
-                        <input type="text" id="join-link" readonly>
-                        <button id="copy-link-btn" class="btn-secondary">Kopieren</button>
-                    </div>
-                </div>
+                    <!-- Linke Seite: Spieler -->
+                    <div class="players-panel">
+                        <div class="game-actions">
+                            <button id="start-game-btn" class="btn-primary btn-large hidden">Spiel starten</button>
+                        </div>
 
-                <!-- Rechte Seite: Einstellungen -->
-                <div class="defaultpanel">
-                    <h2>Einstellungen</h2>
-                    <div class="settings-form">
-                        <div class="form-group">
-                            <label>Spielname</label>
-                            <input type="text" id="settings-name" class="settings-input" maxlength="30">
+                        <h2>Spieler</h2>
+                        <!-- active players -->
+                        <div id="players-list"></div>
+
+                        <!-- spectators -->
+                        <div id="spectators-section" class="hidden" style="margin-top: 20px;">
+                            <h3 style="font-size: 14px; color: #999; margin-bottom: 8px;">Zuschauer</h3>
+                            <div id="spectators-list"></div>
                         </div>
-                        <div class="form-group checkbox">
-                            <input type="checkbox" id="settings-public" class="settings-input">
-                            <label for="settings-public">Öffentlich sichtbar in Lobby</label>
+                        <div class="game-link">
+                            <label>Beitrittslink:</label>
+                            <input type="password" id="join-link" readonly>
+                            <button id="toggle-link-btn" class="btn-secondary" style="margin-bottom: 4px;">Anzeigen</button>
+                            <button id="copy-link-btn" class="btn-secondary">Kopieren</button>
                         </div>
-                        <div class="form-group checkbox">
-                            <input type="checkbox" id="settings-public-during-game" class="settings-input">
-                            <label for="settings-public-during-game">Öffentlich sichtbar während des Spiels</label>
-                        </div>
-                        <div class="form-group">
-                            <label>Passwort</label>
-                            <input type="password" id="settings-password" class="settings-input" placeholder="Optional">
-                        </div>
-                        <div class="form-group">
-                            <label>Maximale Spieler</label>
-                            <input type="number" id="settings-max-players" class="settings-input" min="3" max="42" value="10">
-                        </div>
-                        <div class="form-group">
-                            <label>Maximale Karten pro Spieler</label>
-                            <input type="number" id="settings-max-cards" class="settings-input" min="5" max="1500" value="7">
-                        </div>
-                        <div class="form-group">
-                            <label>Punkte zum Gewinnen</label>
-                            <input type="number" id="settings-win-score" class="settings-input" min="3" max="2000" value="10">
-                        </div>
-                        <div class="form-group">
-                            <label>Runden-Limit</label>
-                            <input type="number" id="settings-max-rounds" class="settings-input" min="1" max="10000" value="50">
-                        </div>
-                        <div class="form-group">
-                            <label>Zeit für Antworten (Sekunden)</label>
-                            <input type="number" id="settings-answer-time" class="settings-input" min="30" max="30000" value="60">
-                        </div>
-                        <div class="form-group">
-                            <label>Zeit für Card Czar Auswahl (Sekunden)</label>
-                            <input type="number" id="settings-czar-time" class="settings-input" min="15" max="12000" value="30">
-                        </div>
-                        <div class="form-group">
-                            <label>Zeit zwischen Runden (Sekunden)</label>
-                            <input type="number" id="settings-round-delay" class="settings-input" min="3" max="1500" value="5">
-                        </div>
-                        <p id="creator-info" class="info-text hidden">Nur der Ersteller kann Einstellungen ändern</p>
                     </div>
 
-                    <div class="game-actions">
-                        <button id="start-game-btn" class="btn-primary btn-large hidden">Spiel starten</button>
+                    <!-- Rechte Seite: Einstellungen -->
+                    <div class="defaultpanel">
+                        <h2>Einstellungen</h2>
+                        <div class="settings-form">
+                            <div class="form-group">
+                                <label>Spielname</label>
+                                <input type="text" id="settings-name" class="settings-input" maxlength="30">
+                            </div>
+                            <div class="form-group checkbox">
+                                <input type="checkbox" id="settings-public" class="settings-input">
+                                <label for="settings-public">Öffentlich sichtbar in Lobby</label>
+                            </div>
+                            <div class="form-group checkbox">
+                                <input type="checkbox" id="settings-public-during-game" class="settings-input">
+                                <label for="settings-public-during-game">Öffentlich sichtbar während des Spiels</label>
+                            </div>
+                            <div class="form-group">
+                                <label>Passwort</label>
+                                <input type="password" id="settings-password" class="settings-input" placeholder="Optional">
+                            </div>
+                            <div class="form-group">
+                                <label>Maximale Spieler</label>
+                                <input type="number" id="settings-max-players" class="settings-input" min="3" max="42" value="10">
+                            </div>
+                            <div class="form-group">
+                                <label>Maximale Karten pro Spieler</label>
+                                <input type="number" id="settings-max-cards" class="settings-input" min="5" max="1500" value="7">
+                            </div>
+                            <div class="form-group">
+                                <label>Punkte zum Gewinnen</label>
+                                <input type="number" id="settings-win-score" class="settings-input" min="3" max="2000" value="10">
+                            </div>
+                            <div class="form-group">
+                                <label>Runden-Limit</label>
+                                <input type="number" id="settings-max-rounds" class="settings-input" min="1" max="10000" value="50">
+                            </div>
+                            <div class="form-group">
+                                <label>Zeit für Antworten (Sekunden)</label>
+                                <input type="number" id="settings-answer-time" class="settings-input" min="30" max="30000" value="60">
+                            </div>
+                            <div class="form-group">
+                                <label>Zeit für Card Czar Auswahl (Sekunden)</label>
+                                <input type="number" id="settings-czar-time" class="settings-input" min="15" max="12000" value="30">
+                            </div>
+                            <div class="form-group">
+                                <label>Zeit zwischen Runden (Sekunden)</label>
+                                <input type="number" id="settings-round-delay" class="settings-input" min="3" max="1500" value="5">
+                            </div>
+                            <p id="creator-info" class="info-text hidden">Nur der Ersteller kann Einstellungen ändern</p>
+                        </div>
+
                     </div>
+
+
                 </div>
             </div>
 

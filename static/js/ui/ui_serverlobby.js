@@ -8,6 +8,23 @@ const logoutBtn = document.getElementById('logout-btn');
 const currentUsernameDisplay = document.getElementById('current-username');
 const publicGamesDiv = document.getElementById('public-games');
 
+const gameSearchInput = document.getElementById('game-search-input');
+gameSearchInput.addEventListener('input', () => {
+    const filter = gameSearchInput.value.toLowerCase();
+    const gameCards = publicGamesDiv.getElementsByClassName('game-card');
+    Array.from(gameCards).forEach(card => {
+        const gameName = card.querySelector('h3').textContent.toLowerCase();
+        if (gameName.includes(filter)) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    displayPublicGames();
+});
+
+
 function showServerLobby() {
     window.ui.showScreen(lobbyScreen);
 
@@ -18,14 +35,29 @@ function getGameLobbys() {
     socket.emit('get_public_games');
 }
 
-function displayPublicGames(games) {
-    if (!games || games.length === 0) {
+var lastSavedGames = [];
+
+function displayPublicGames(_games) {
+    if(_games !== undefined) {
+        lastSavedGames = _games;
+    }
+    
+    let filteredGames = lastSavedGames;
+    
+    const filter = gameSearchInput.value.toLowerCase();
+    if (filter) {
+        filteredGames = lastSavedGames.filter(game => 
+            game.name.toLowerCase().includes(filter)
+        );
+    }
+
+    if (!filteredGames || filteredGames.length === 0) {
         publicGamesDiv.innerHTML = '<p class="empty-message">Keine öffentlichen Spiele verfügbar</p>';
         return;
     }
     
     publicGamesDiv.innerHTML = '';
-    games.forEach(game => {
+    filteredGames.forEach(game => {
         let gameStarted = game.started || false;
 
         const card = document.createElement('div');
