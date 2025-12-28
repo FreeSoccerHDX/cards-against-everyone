@@ -66,7 +66,6 @@ socket.on('pong', (data) => {
     const pongTime = Date.now();
     const pingId = data.startTime;
     const latency = pongTime - pingId;
-    console.log(`Pong received. Latency: ${latency} ms`);
     pingDisplay.textContent = `${latency} ms`;
     // Hier könntest du die Latenz irgendwo im UI anzeigen, wenn gewünscht
 });
