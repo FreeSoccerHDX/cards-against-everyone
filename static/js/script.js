@@ -119,35 +119,6 @@ socket.on('game_info_link_join_error', (data) => {
     clearUrlParams();
 });
 
-// Round Started
-socket.on('round_started', (data) => {
-    console.error('round_started data:', data); // DEBUG
-});
-
-// Voting Phase
-socket.on('voting_phase', (data) => {
-    hideAllPhases();
-    
-    // Timer wird vom Server via timer_sync gesetzt
-    timerDisplay.style.display = 'block';
-    
-    if (isCzar) {
-        votingPhase.style.display = 'block';
-        displayAnswerOptions(data.answer_options, true);
-    } else {
-        waitingVotePhase.style.display = 'block';
-        // Zeige Antworten auch für Nicht-Czar Spieler (read-only)
-        displayAnswerOptions(data.answer_options, false);
-    }
-});
-
-// Game Ended
-socket.on('game_ended', (data) => {
-    
-    // Zeige Round History
-    displayRoundHistory(data.round_history || []);
-});
-
 // Error handling
 socket.on('error', (data) => {
     showNotification(data.message, 'error');

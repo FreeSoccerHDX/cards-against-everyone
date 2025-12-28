@@ -147,6 +147,7 @@ socket.on('player_status_changed', (data) => {
     window.currentGameData.player_status[data.username] = data.status;
     updatePlayersList(window.currentGameData.active_players, window.currentGameData.owner);
     updateSpectatorsList(window.currentGameData.spectators || [], window.currentGameData.player_status || {});
+    update_scores(window.currentGameData);
 
 });
 
