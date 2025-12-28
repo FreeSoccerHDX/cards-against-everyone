@@ -4,8 +4,10 @@
 // DOM-Elemente für Settings
 const settingsName = document.getElementById('settings-name');
 const settingsPublic = document.getElementById('settings-public');
+const settingsPublicDuringGame = document.getElementById('settings-public-during-game');
 const settingsPassword = document.getElementById('settings-password');
 const settingsMaxCards = document.getElementById('settings-max-cards');
+const settingsMaxPlayers = document.getElementById('settings-max-players');
 const settingsWinScore = document.getElementById('settings-win-score');
 const settingsMaxRounds = document.getElementById('settings-max-rounds');
 const settingsAnswerTime = document.getElementById('settings-answer-time');
@@ -27,37 +29,19 @@ function autoSaveSettings() {
         const settingsData = {
             gameName: settingsName.value.trim(),
             publicVisible: settingsPublic.checked,
+            publicVisibleDuringGame: settingsPublicDuringGame.checked,
             password: settingsPassword.value.trim(),
+            maxPlayers: parseInt(settingsMaxPlayers.value),
             maxWhiteCardsPerPlayer: parseInt(settingsMaxCards.value),
             maxPointsToWin: parseInt(settingsWinScore.value),
             maxRounds: parseInt(settingsMaxRounds.value),
             timeToChooseWhiteCards: parseInt(settingsAnswerTime.value),
             timeToChooseWinner: parseInt(settingsCzarTime.value),
-            timeAfterWinnerChosen: parseInt(settingsRoundDelay.value)
+            timeAfterWinnerChosen: parseInt(settingsRoundDelay.value),
+            
         };
         window.socket.emit('update_settings', settingsData);
 
-        /*
-        const data = {
-            name: settingsName.value.trim(),
-            is_public: settingsPublic.checked,
-            password: settingsPassword.value.trim(),
-            settings: {
-                maxWhiteCardsPerPlayer: parseInt(settingsMaxCards.value),
-                win_score: parseInt(settingsWinScore.value),
-                max_rounds: parseInt(settingsMaxRounds.value),
-                answer_time: parseInt(settingsAnswerTime.value),
-                czar_time: parseInt(settingsCzarTime.value),
-                round_delay: parseInt(settingsRoundDelay.value)
-            }
-        };
-        console.log('Sending update_settings to server:', data);
-        // Verwende socket über window
-        if (window.socket) {
-            window.socket.emit('update_settings', data);
-        } else {
-            console.error('Socket not available!');
-        }*/
     }, 500); // 500ms Debounce
 }
 
@@ -72,6 +56,8 @@ function initializeSettingsListeners() {
     settingsAnswerTime.addEventListener('input', autoSaveSettings);
     settingsCzarTime.addEventListener('input', autoSaveSettings);
     settingsRoundDelay.addEventListener('input', autoSaveSettings);
+    settingsMaxPlayers.addEventListener('input', autoSaveSettings);
+    settingsPublicDuringGame.addEventListener('change', autoSaveSettings);
     
     // Start Game Button
     startGameBtn.addEventListener('click', () => {
@@ -92,6 +78,8 @@ function loadGameSettings(game) {
     settingsAnswerTime.value = game.settings.timeToChooseWhiteCards || 60;
     settingsCzarTime.value = game.settings.timeToChooseWinner || 60;
     settingsRoundDelay.value = game.settings.timeAfterWinnerChosen || 15;
+    settingsMaxPlayers.value = game.settings.maxPlayers || 10;
+    settingsPublicDuringGame.checked = game.settings.publicVisibleDuringGame || false;
 }
 
 // Funktion um Settings-Inputs basierend auf Creator-Status zu aktivieren/deaktivieren

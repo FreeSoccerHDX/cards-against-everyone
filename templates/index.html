@@ -128,11 +128,19 @@
                         </div>
                         <div class="form-group checkbox">
                             <input type="checkbox" id="settings-public" class="settings-input">
-                            <label for="settings-public">Öffentlich sichtbar</label>
+                            <label for="settings-public">Öffentlich sichtbar in Lobby</label>
+                        </div>
+                        <div class="form-group checkbox">
+                            <input type="checkbox" id="settings-public-during-game" class="settings-input">
+                            <label for="settings-public-during-game">Öffentlich sichtbar während des Spiels</label>
                         </div>
                         <div class="form-group">
                             <label>Passwort</label>
                             <input type="password" id="settings-password" class="settings-input" placeholder="Optional">
+                        </div>
+                        <div class="form-group">
+                            <label>Maximale Spieler</label>
+                            <input type="number" id="settings-max-players" class="settings-input" min="3" max="42" value="10">
                         </div>
                         <div class="form-group">
                             <label>Maximale Karten pro Spieler</label>

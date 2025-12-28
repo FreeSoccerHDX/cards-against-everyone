@@ -803,7 +803,7 @@ function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connect
 
         
     item.innerHTML = `
-        <span>${statusIcon} ${escapeHtml(name)}${isCurrentPlayer ? ' (Du)' : ''}</span>
+        <span>${statusIcon}${isCurrentPlayer ? '(Du)' : ''} ${escapeHtml(name)}</span>
         <span class="player-actions">
             ${isCreator? '<span class="crown">👑</span>' : ''}
             ${toggleButton}

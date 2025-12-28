@@ -34,6 +34,7 @@ class Game:
         self.settings = {    
             "gameName": gameName if gameName else ownerName + "'s Game",
             "publicVisible": isPublicVisible,
+            "publicVisibleDuringGame": False,
             "password": password,
             "maxWhiteCardsPerPlayer": 7,
             "maxPointsToWin": 5,
@@ -41,7 +42,7 @@ class Game:
             "timeToChooseWhiteCards": 60,
             "timeToChooseWinner": 60,
             "timeAfterWinnerChosen": 15,
-            "maxPlayers": 100
+            "maxPlayers": 10
         }
 
     def updateSettings(self, newSettings):
@@ -86,23 +87,23 @@ class Game:
     
     def toggle_role(self, playerName):
         if self.is_game_started():
-            return False
+            return False, "Spiel bereits gestartet"
         
         if playerName in self.spectators:
             # switch to player
             if len(self.active_players) >= self.settings["maxPlayers"]:
-                return False
+                return False, "Maximale Spieleranzahl erreicht"
             self.spectators.remove(playerName)
             self.active_players.append(playerName)
-            return True
+            return True, "Spieler"
         
         if playerName in self.active_players:
             # switch to spectator
             self.active_players.remove(playerName)
             self.spectators.append(playerName)
-            return True
+            return True, "Zuschauer"
         
-        return False
+        return False, "Spieler nicht gefunden"
 
     def toogle_pause(self):
         self.paused = not self.paused

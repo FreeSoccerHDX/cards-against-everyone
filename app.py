@@ -338,7 +338,7 @@ def get_public_games():
     """Gibt alle öffentlichen Spiele zurück"""
     public_games = []
     for game_id, game in games.items():
-        if game.settings["publicVisible"]: #and not game['started']:
+        if (not game.is_game_started() and game.settings["publicVisible"]) or (game.is_game_started() and game.settings["publicVisibleDuringGame"]):
             public_games.append({
                 'id': game_id,
                 'name': game.settings["gameName"],
@@ -506,8 +506,9 @@ def handle_toggle_role():
         return
     
     was_spectator = username in game.spectators
+    success, message = game.toggle_role(username)
     
-    if game.toggle_role(username):    
+    if success:    
         # Informiere alle im Raum
         emit('role_changed', {
             'username': username,
@@ -517,7 +518,7 @@ def handle_toggle_role():
         
         emit('success', {'message': f'Du bist jetzt {"Spieler" if was_spectator else "Zuschauer"}'})
     else:
-        emit('error', {'message': 'Rollenwechsel fehlgeschlagen'})
+        emit('error', {'message': 'Rollenwechsel fehlgeschlagen: ' + message})
 
 @socketio.on('force_role')
 def handle_force_role(data):
