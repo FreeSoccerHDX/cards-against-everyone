@@ -22,8 +22,8 @@ function clearUrlParams() {
     window.history.replaceState({}, '', url);
 }
 
-var lastNotificationTimeout = null;
 
+var lastNotificationTimeout = null;
 function showNotification(message, type = 'info') {
     notification.textContent = message;
     notification.className = 'notification show';
@@ -46,6 +46,31 @@ window.addEventListener('load', () => {
         socket.emit('reconnect_user', { username: savedUsername });
     }
 });
+
+
+var currentPingID = 0;
+// Ping Event
+function sendPing() {
+    socket.emit('ping', { 
+        "pingId": currentPingID++ ,
+        "startTime": Date.now()
+    });
+}
+sendPing(); // Sofortiger Ping beim Start
+setInterval(() => {
+    sendPing();
+}, 5000);
+
+const pingDisplay = document.getElementById('ping');
+socket.on('pong', (data) => {
+    const pongTime = Date.now();
+    const pingId = data.startTime;
+    const latency = pongTime - pingId;
+    console.log(`Pong received. Latency: ${latency} ms`);
+    pingDisplay.textContent = `${latency} ms`;
+    // Hier könntest du die Latenz irgendwo im UI anzeigen, wenn gewünscht
+});
+
 
 // Handle Server-Neustart: Seite neu laden
 socket.on('disconnect', () => {

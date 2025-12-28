@@ -128,6 +128,24 @@ def cleanup_user(username):
 def index():
     return render_template('index.html')
 
+
+@socketio.on('ping')
+def handle_ping(data):
+    emit('pong', {
+        "serverTime": time.time(), 
+        "startTime": data.get('startTime', -1),
+        "pingId": data.get('pingId', -1)
+        })
+    
+    # update client last seen + game-player_status if exist
+    username = users_by_sid.get(request.sid, None)
+    if username and username in users:
+        users[username]['last_seen'] = time.time()
+        game_id = users[username].get('game_id')
+        if game_id and game_id in games:
+            game = games[game_id]
+            game.mark_player_connection_status(username, 'connected')
+
 @socketio.on('connect')
 def handle_connect():
     global global_timer_task, timer_started
