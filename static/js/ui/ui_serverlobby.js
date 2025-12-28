@@ -77,6 +77,8 @@ logoutBtn.addEventListener('click', async () => {
         window.ui.showLoginScreen();
         usernameInput.value = '';
         usernameError.textContent = '';
+
+        getRandomFunnyName();
         
         showNotification('Abgemeldet', 'info');
     }

@@ -29,12 +29,28 @@ function generatePlayerColor(username) {
 }
 
 function getContrastColor(h, s, l) {
-    // Wenn Helligkeit unter 60% ist, nutze weiß, sonst schwarz
+    // 1. Hue um 180° drehen
     const oppositeHue = (h + 180) % 360;
-    const oppositeColor = `hsl(${oppositeHue}, ${s}%, ${l}%)`;
-    return oppositeColor;
-    //return l < 60 ? '#ffffff' : '#000000';
+
+    // 2. Lightness spiegeln (entscheidend für Kontrast)
+    let oppositeLightness = 100 - l;
+
+    // Extremwerte abfangen (50% ist besonders problematisch)
+    if (oppositeLightness > 45 && oppositeLightness < 55) {
+        oppositeLightness = l < 50 ? 85 : 15;
+    }
+
+    // 3. Sättigung stabilisieren
+    let oppositeSaturation = s;
+    if (oppositeSaturation < 40) {
+        oppositeSaturation = 60;
+    } else if (oppositeSaturation > 80) {
+        oppositeSaturation = 70;
+    }
+
+    return `hsl(${oppositeHue}, ${oppositeSaturation}%, ${oppositeLightness}%)`;
 }
+
 
 function applyPlayerColor(element, username) {
     const colors = generatePlayerColor(username);

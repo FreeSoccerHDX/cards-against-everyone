@@ -7,12 +7,13 @@ const usernameError = document.getElementById('username-error');
 // Globale Variablen
 window.currentUsername = null;
 
+getRandomFunnyName();
+
 function showLoginScreen() {
     window.ui.showScreen(loginScreen);
 }
 
 function resetAllData() {
-    
     usernameInput.value = '';
     usernameError.textContent = '';
 }
@@ -82,8 +83,8 @@ function submitUsername() {
         return;
     }
     
-    if (username.length > 20) {
-        usernameError.textContent = 'Der Name darf maximal 20 Zeichen lang sein';
+    if (username.length > 30) {
+        usernameError.textContent = 'Der Name darf maximal 30 Zeichen lang sein (aktuell: ' + username.length + ')';
         return;
     }
     

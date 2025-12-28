@@ -128,6 +128,26 @@ def cleanup_user(username):
 def index():
     return render_template('index.html')
 
+@socketio.on('funny_name_used')
+def handle_funny_name_used(data):
+    names = data.get('names', [])
+    name = None
+
+    # Überprüfe, ob der Name verfügbar ist
+    for n in names:
+        available = True
+        if n in users and users[n].get('status', 'connected') == 'connected':
+            available = False
+        if available:
+            name = n
+            break
+
+    # Sende Antwort zurück an den Client
+    emit('funny_name_used_response', {
+        'name': name,
+        'available': name is not None
+    })
+
 
 @socketio.on('ping')
 def handle_ping(data):
@@ -140,6 +160,7 @@ def handle_ping(data):
     # update client last seen + game-player_status if exist
     username = users_by_sid.get(request.sid, None)
     if username and username in users:
+        users[username]['status'] = 'connected'
         users[username]['last_seen'] = time.time()
         game_id = users[username].get('game_id')
         if game_id and game_id in games:
@@ -194,8 +215,8 @@ def handle_set_username(data):
         emit('username_error', {'message': 'Der Name muss mindestens 2 Zeichen lang sein'})
         return
     
-    if len(username) > 20:
-        emit('username_error', {'message': 'Der Name darf maximal 20 Zeichen lang sein'})
+    if len(username) > 30:
+        emit('username_error', {'message': 'Der Name darf maximal 30 Zeichen lang sein (aktuell: ' + str(len(username)) + ')'})
         return
     
     # Prüfe ob Name bereits existiert und Spieler verbunden ist

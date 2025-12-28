@@ -15,7 +15,7 @@
         <div class="container">
             <h1>Cards Against Everyone</h1>
             <div class="username-form">
-                <input type="text" id="username-input" placeholder="Dein Name" maxlength="20" autofocus>
+                <input type="text" id="username-input" placeholder="Dein Name" maxlength="30" autofocus>
                 <button id="username-submit">Los geht's</button>
                 <div id="username-error" class="error-message"></div>
             </div>
@@ -309,10 +309,14 @@
 
     <p id="ping" class="ping"></p>
 
+    
+    
     <script src="{{ url_for('static', filename='js/custom-confirm.js') }}"></script>
     <script src="{{ url_for('static', filename='js/player-colors.js') }}"></script>
     <script src="{{ url_for('static', filename='js/game-settings.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/random-funny-name.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/ui/ui_general.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui/ui_login.js') }}"></script>
