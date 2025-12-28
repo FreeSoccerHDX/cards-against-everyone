@@ -47,7 +47,7 @@ class Game:
 
     def updateSettings(self, newSettings):
         for key, value in newSettings.items():
-            if key in self.settings:
+            if key in self.settings and value is not None:
                 self.settings[key] = value
     
     def send_socket_game_update_for_all(self, channel="game_state_update", include_history=False):

@@ -75,47 +75,16 @@ def cleanup_user(username):
         game_id = users[username].get('game_id')
         if game_id and game_id in games:
             game = games[game_id]
+            success = game.remove_player(username)
             
-            # Entferne Spieler aus dem Spiel
-            was_creator = game['creator'] == username
-            if username in game['players']:
-                game['players'].remove(username)
-            if username in game.get('spectators', []):
-                game['spectators'].remove(username)
-                
-            # Entferne aus Game State (Scores, Hands, etc.)
-            if game.get('game_state'):
-                state = game['game_state']
-                if username in state.get('player_scores', {}):
-                    del state['player_scores'][username]
-                if username in state.get('player_hands', {}):
-                    del state['player_hands'][username]
-                if username in state.get('submitted_answers', {}):
-                    del state['submitted_answers'][username]
-                if username in state.get('active_players', []):
-                    state['active_players'].remove(username)
-            
-            # Wenn Ersteller weg ist, neuen Ersteller bestimmen
-            if was_creator:
-                if game['players']:
-                    game['creator'] = game['players'][0]
-                elif game.get('spectators'):
-                    game['creator'] = game['spectators'][0]
-                else:
-                    game['creator'] = None
-            
-            # Spiel löschen wenn leer
-            if not game['players'] and not game.get('spectators'):
-                # Timer wird automatisch vom universal_timer_task gestoppt
-                # wenn das Spiel nicht mehr existiert
+            # Spiel löschen wenn kein neuer owner -> kein Spieler mehr da
+            if game.owner == None:
                 del games[game_id]
             else:
                 # Informiere andere Spieler
                 socketio.emit('player_left', {
                     'username': username,
-                    'players': game['players'],
-                    'spectators': game.get('spectators', []),
-                    'creator': game['creator']
+                    'game': game.get_socket_game_data(include_history=True)
                 }, room=game_id)
         
         del users[username]
@@ -393,7 +362,7 @@ def handle_join_game(data):
         emit('player_joined', {
             'username': username,
             'is_spectator': is_spectator,
-            'game': game.get_socket_game_data()
+            'game': game.get_socket_game_data(include_history=True)
         }, room=game_id, include_self=False)
 
     else:
@@ -425,7 +394,7 @@ def handle_leave_game():
         # Informiere andere Spieler
         emit('player_left', {
             'username': username,
-            'game': game.get_socket_game_data()
+            'game': game.get_socket_game_data(include_history=True)
         }, room=game_id)
     
     emit('left_game', {})

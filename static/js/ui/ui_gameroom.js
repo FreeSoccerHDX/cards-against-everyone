@@ -136,7 +136,9 @@ socket.on('player_joined', (data) => {
         `${data.username} ist als Zuschauer beigetreten` : 
         `${data.username} ist beigetreten`;
     showNotification(message, 'info');
-    
+
+    window.currentGameData.active_players = data.game.active_players
+    window.currentGameData.spectators = data.game.spectators
     updateLobbyPlayerList(data.game);
 });
 
@@ -224,7 +226,7 @@ socket.on('game_state_update', (game) => {
 
 // Game Room created
 socket.on('game_created', (game) => {
-    console.log(game);
+    //console.log(game);
     showGameScreen(game);
     showNotification('Spiel erstellt!', 'success');
 });
@@ -288,6 +290,7 @@ socket.on('timer_sync', (data) => {
 
 // Game Room joined
 socket.on('game_joined', (game) => {
+    //console.log("game_joined:", game);
     setInviteLinkVisibility(false);
     showGameScreen(game);
     showNotification('Spiel beigetreten!', 'success');
@@ -295,27 +298,21 @@ socket.on('game_joined', (game) => {
 
 function toggleCardSelection(index, cardEl) {
     // Blockiere während Pause
-    console.log("toggleCardSelection", index);
+    //console.log("toggleCardSelection", index);
     if (window.currentGameData.paused) {
-        console.log("---> paused, return");
         return;
     }
     
     const selectedIndex = selectedCards.indexOf(index);
     
     if (selectedIndex > -1) {
-        console.log("---> deselect");
         // Deselect
         selectedCards.splice(selectedIndex, 1);
         cardEl.classList.remove('selected');
         cardEl.querySelector('.selection-number')?.remove();
     } else {
-        console.log("---> select");
         // Select
         let currentQuestion = window.currentGameData.current_black_card;
-        console.log("---> currentQuestion:", currentQuestion);
-        console.log("---> selectedCards.length:", selectedCards.length);
-        console.log("---> currentQuestion.num_blanks:", currentQuestion.num_blanks);
         if (selectedCards.length < currentQuestion.num_blanks) {
             selectedCards.push(index);
             cardEl.classList.add('selected');
@@ -529,7 +526,7 @@ function update_ownerControls(game) {
 
 function update_czarSelection(game) {
 
-    console.log("display czar selection", game.submitted_white_cards);
+    //console.log("display czar selection", game.submitted_white_cards);
     
     votingPhase.classList.remove('hidden');
     answerOptionsList.innerHTML = '';
@@ -545,7 +542,7 @@ function update_czarSelection(game) {
     for (const i in playermapping) {
         // Finde die Option, die zu diesem Spieler gehört
         let playerName = playermapping[i];
-        console.log("playerName:", playerName);
+        //console.log("playerName:", playerName);
         let cards = submitted_options[playerName];
 
         const optionEl = document.createElement('div');
@@ -566,7 +563,6 @@ function update_czarSelection(game) {
         if (isCzar) {
             optionEl.addEventListener('click', () => selectWinner(i, optionEl));
         }
-        console.log("add element")
         answerOptionsList.appendChild(optionEl);
 
     }
@@ -736,6 +732,8 @@ socket.on('game_reset_to_lobby', (game) => {
 
 
 function updateLobbyPlayerList(game) {
+    //console.log("updateLobbyPlayerList:", game.active_players, game.spectators);
+
     let player_status = game.player_status || {};
     let spectators = game.spectators || [];
     let active_players = game.active_players || [];
@@ -927,7 +925,6 @@ socket.on('role_changed', (data) => {
 
 socket.on('game_started', (game) => {
     // Update Creator info
-    console.log("game_started", game)
     window.currentGameData = game;
     updateGameRoom(game);
 });

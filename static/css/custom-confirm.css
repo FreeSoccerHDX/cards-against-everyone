@@ -19,7 +19,7 @@
 }
 
 .custom-confirm-dialog {
-    background: white;
+    background: var(--color-confirmdialog-bg);
     border-radius: 16px;
     padding: 40px;
     max-width: 450px;
@@ -39,7 +39,7 @@
 }
 
 .custom-confirm-title {
-    color: #333;
+    color: var(--color-confirmdialog);
     font-size: 24px;
     margin-bottom: 15px;
     font-weight: 700;

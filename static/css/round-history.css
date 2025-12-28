@@ -9,11 +9,13 @@
 }
 
 .history-card {
-    background: white;
+    background: var(--color-finalscore-bg);
     border-radius: 10px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
 }
 
 .history-card:hover {
@@ -39,7 +41,7 @@
 
 .history-question-filled {
     font-size: 16px;
-    color: #333;
+    color: var(--color-finalscore);
     margin-bottom: 15px;
     line-height: 1.6;
     font-weight: 500;
@@ -63,7 +65,9 @@
     flex-wrap: wrap;
     padding-top: 12px;
     border-top: 1px solid #e0e0e0;
+    margin-top: auto;
 }
+
 
 .history-meta-item {
     display: flex;

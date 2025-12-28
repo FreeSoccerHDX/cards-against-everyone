@@ -5,14 +5,125 @@
 }
 
 body {
+    --color-gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --color-text: #333;
+    --color-modal-bg: #fff;
+    --color-text-h2: #555;
+    --color-formgroup-label: #555;
+    --color-slider-bg-checked: #222;
+    --color-container-bg: white;
+    --color-defaultpanel-bg: #f8f9fa;
+
+    --color-inputtext-bg: #ddd;
+    --color-inputtext-border: #bbb;
+    --color-inputtext: #333;
+    --color-inputtext-focus-border: #667eea;
+
+    --color-userinfo: #666;
+
+    --color-gamecard-bg: #f8f9fa;
+    --color-gamecard-border: #e0e0e0;
+    --color-gamecard: #333;
+
+    --color-confirmdialog-bg: #fff;
+    --color-confirmdialog: #333;
+
+    --color-optionslist-bg: #fff;
+    --color-optionslist-border: #ccc;
+    --color-optionslist: #333;
+
+    --color-resultquestion: #333;
+
+    --color-answercard-bg: #fff;
+    --color-answercard: #333;
+    --color-answercard-selected: #667eea;
+
+    --color-finalscore-bg: #f8f9fa;
+    --color-finalscore: #eee;
+}
+
+body.darkmode {
+    --color-gradient-bg: linear-gradient(135deg, #232526 0%, #414345 100%);
+    --color-text: #ddd;
+    --color-modal-bg: #222;
+    --color-text-h2: #aaa;
+    --color-formgroup-label: #aaa;
+    --color-slider-bg-checked: #555;
+    --color-container-bg: #333;
+    --color-defaultpanel-bg: #444;
+
+    --color-inputtext-bg: #555;
+    --color-inputtext-border: #888;
+    --color-inputtext: #ddd;
+    --color-inputtext-focus-border: #667eea;
+
+    --color-userinfo: #aaa;
+
+    --color-gamecard-bg: #444;
+    --color-gamecard-border: #666;
+    --color-gamecard: #ddd;
+
+    --color-confirmdialog-bg: #222;
+    --color-confirmdialog: #ddd;
+
+    --color-optionslist-bg: #333;
+    --color-optionslist-border: #555;
+    --color-optionslist: #ddd;
+
+    --color-resultquestion: #ddd;
+
+    --color-answercard-bg: #555;
+    --color-answercard: #ddd;
+    --color-answercard-selected-bg: #232c50;
+
+    --color-finalscore-bg: #333;
+    --color-finalscore: #ddd;
+}
+
+input[type="text"], input[type="password"], input[type="number"] {
+    background: var(--color-inputtext-bg);
+    border-color: var(--color-inputtext-border);
+    color: var(--color-inputtext);
+}
+
+input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus {
+    border-color: var(--color-inputtext-focus-border);
+}
+
+
+body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--color-gradient-bg);
     min-height: 100vh;
-    color: #333;
+    color: var(--color-text);
 }
 
 .hidden {
     display: none !important;
+}
+
+.game-search-input {
+    margin-left: 0px;
+    width: 400px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1.5px solid #bbb;
+    font-size: 1.1em;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.user-settings-button {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 18px;
+    z-index: 9999;
+    cursor: pointer;
+    border: none;
 }
 
 .ping {
@@ -41,7 +152,7 @@ body {
 }
 
 .container {
-    background: white;
+    background: var(--color-container-bg);
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     max-width: 1200px;
@@ -62,7 +173,7 @@ h1 {
 }
 
 h2 {
-    color: #555;
+    color: var(--color-text-h2);
     margin-bottom: 20px;
     font-size: 1.5em;
 }
@@ -190,7 +301,7 @@ button {
 
 .user-info {
     font-size: 16px;
-    color: #666;
+    color: var(--color-userinfo);
     display: flex;
     align-items: center;
     gap: 15px;
@@ -240,8 +351,8 @@ button {
 }
 
 .game-card {
-    background: #f8f9fa;
-    border: 2px solid #e0e0e0;
+    background: var(--color-gamecard-bg);
+    border: 2px solid var(--color-gamecard-border);
     border-radius: 8px;
     padding: 20px;
     cursor: pointer;
@@ -255,13 +366,13 @@ button {
 }
 
 .game-card h3 {
-    color: #333;
+    color: var(--color-gamecard);
     margin-bottom: 10px;
     font-size: 1.2em;
 }
 
 .game-card .game-info {
-    color: #666;
+    color: var(--color-gamecard);;
     font-size: 14px;
     display: flex;
     justify-content: space-between;
@@ -298,7 +409,7 @@ button {
 }
 
 .modal-content {
-    background: white;
+    background: var(--color-modal-bg);
     border-radius: 12px;
     padding: 30px;
     max-width: 500px;
@@ -315,7 +426,7 @@ button {
 .game-link label {
     display: block;
     margin-bottom: 8px;
-    color: #555;
+    color: var(--color-formgroup-label);
     font-weight: 600;
 }
 
@@ -328,16 +439,10 @@ button {
 .form-group input[type="number"] {
     width: 100%;
     padding: 12px;
-    border: 2px solid #ddd;
     border-radius: 8px;
     font-size: 16px;
     transition: border-color 0.3s;
-}
-
-#username-input:focus,
-.form-group input:focus {
-    outline: none;
-    border-color: #667eea;
+    border: 1px solid;
 }
 
 .form-group.checkbox {
@@ -364,7 +469,7 @@ button {
 }
 
 .defaultpanel {
-    background: #f8f9fa;
+    background: var(--color-defaultpanel-bg);
     padding: 10px;
     border-radius: 8px;
 }
@@ -744,7 +849,8 @@ button {
 }
 
 .answer-card {
-    background: white;
+    background: var(--color-answercard-bg);
+    color: var(--color-answercard);
     border: 3px solid #e0e0e0;
     border-radius: 10px;
     padding: 10px;
@@ -767,7 +873,7 @@ button {
 
 .answer-card.selected {
     border-color: #667eea;
-    background: #e3f2fd;
+    background: var(--color-answercard-selected-bg);
     transform: translateY(-5px);
 }
 
@@ -811,8 +917,9 @@ button {
 }
 
 .answer-option {
-    background: white;
-    border: 3px solid #e0e0e0;
+    background: var(--color-optionslist-bg);
+    border: 3px solid var(--color-optionslist-border);
+    color: var(--color-optionslist);
     border-radius: 10px;
     padding: 25px;
     cursor: pointer;
@@ -856,7 +963,7 @@ button {
 .result-question {
     font-size: 22px;
     font-weight: bold;
-    color: #333;
+    color: var(--color-resultquestion);
     margin-bottom: 15px;
     line-height: 1.5;
 }
@@ -898,7 +1005,7 @@ button {
 
 .next-round-countdown {
     font-size: 20px;
-    color: #666;
+    color: var(--color-text-h2);
     margin-top: 15px;
 }
 
@@ -921,7 +1028,6 @@ button {
 }
 
 #final-scores {
-    background: #f8f9fa;
     padding: 30px;
     border-radius: 12px;
     max-width: 500px;
@@ -968,6 +1074,7 @@ button {
     
     .container {
         padding: 10px;
+        padding-bottom: 40px;
     }
 
     .game-content {

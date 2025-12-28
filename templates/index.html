@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-confirm.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/round-history.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/user-settings.css') }}">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
@@ -41,7 +42,7 @@
             <div class="games-list">
                 <div class="game-list-header">
                     <h2 style="margin-bottom: 0px;margin-left: 0px;padding: 10px 16px;font-size: 1.1em;">Öffentliche Spiele</h2>
-                    <input type="text" id="game-search-input" placeholder="Spiel suchen..." style="margin-left: 0px; width: 400px; padding: 10px 16px; border-radius: 8px; border: 1.5px solid #bbb; font-size: 1.1em; box-shadow: 0 1px 4px rgba(0,0,0,0.06); background: #fafbfc;">
+                    <input type="text" id="game-search-input" placeholder="Spiel suchen..." class="game-search-input">
                 </div>                
                 <div id="public-games">
                     <p class="empty-message">Keine öffentlichen Spiele verfügbar</p>
@@ -328,8 +329,22 @@
     </div>
 
     <p id="ping" class="ping"></p>
+    <button id="user-settings-button" class="user-settings-button">⚙</button>
 
-    
+    <!-- User Settings Modal -->
+    <div id="user-settings-modal" class="modal">
+        <div class="modal-content">
+            <h2>Benutzereinstellungen</h2>
+            <div class="form-group">
+                <!-- DarkMode/LightMode -->
+                <label for="dark-mode-toggle" id="dark-mode-label">Light Mode</label>
+                <input type="checkbox" id="dark-mode-toggle">
+            </div>
+            <div class="modal-actions">
+                <button id="user-settings-close" class="btn-secondary">Schließen</button>
+            </div>
+        </div>
+    </div>
     
     <script src="{{ url_for('static', filename='js/custom-confirm.js') }}"></script>
     <script src="{{ url_for('static', filename='js/player-colors.js') }}"></script>
@@ -337,6 +352,7 @@
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/random-funny-name.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/user-settings.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/ui/ui_general.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui/ui_login.js') }}"></script>
