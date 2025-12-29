@@ -14,16 +14,27 @@ userSettingsClose.addEventListener('click', () => {
 // Hide the original toggle
 darkModeToggle.style.display = 'none';
 
-// Set dark mode as default
-darkModeToggle.checked = true;
-document.body.classList.add('darkmode');
+// Load dark mode setting from localStorage, default to true if not set
+let darkModeEnabled = localStorage.getItem('darkMode');
+if (darkModeEnabled === null) {
+    darkModeEnabled = 'true';
+    localStorage.setItem('darkMode', 'true');
+}
+darkModeToggle.checked = darkModeEnabled === 'true';
+if (darkModeToggle.checked) {
+    document.body.classList.add('darkmode');
+} else {
+    document.body.classList.remove('darkmode');
+}
 
 // Listen for changes and toggle dark mode colors
 darkModeToggle.addEventListener('change', function() {
     if (darkModeToggle.checked) {
         document.body.classList.add('darkmode');
+        localStorage.setItem('darkMode', 'true');
     } else {
         document.body.classList.remove('darkmode');
+        localStorage.setItem('darkMode', 'false');
     }
 });
 
