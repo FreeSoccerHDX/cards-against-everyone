@@ -385,6 +385,7 @@ function displayState(game) {
 function updateGameState_Lobby(game) {
     displayState(game);
     // need: gametitle, players, owner, spectators, creator, player-status, settings, game-invite-link
+    update_ownerControls(game);
     update_titleLobby(game);
     updateLobbyPlayerList(game);
     update_settingsLobby(game);
@@ -748,7 +749,7 @@ function updateLobbyPlayerList(game) {
 
     allMembers.forEach(player => {
         
-        let isCreator = (player == window.currentUsername);
+        let isCreator = (player == game.owner);
         let isCurrentPlayer = (player == window.currentUsername);
         let isSpectator = spectators.includes(player);
         let connection_status = player_status[player] || 'connected';
@@ -766,6 +767,8 @@ function updateLobbyPlayerList(game) {
 }
 
 function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole) {
+    //console.log("createListObject:", name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole);
+
     const item = document.createElement('div');
     item.className = 'player-item' + (isSpectator ? ' spectator-item' : '');
     if(isCreator) {
@@ -790,21 +793,29 @@ function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connect
     }
     // Force-Role Button für Creator bei anderen Spielern (nur in Lobby)
     let forceRoleButton = '';
-    if (canForceRole) {
-        forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(name).replace(/'/g, "\\'")}')\" title="Zu Zuschauer verschieben">👁️</button>`;
+    if (!isCurrentPlayer && canForceRole) {
+        if (isSpectator) {
+            forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(name).replace(/'/g, "\\'")}')\" title="Zu Spieler verschieben">🎮</button>`;
+        } else {
+            forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(name).replace(/'/g, "\\'")}')\" title="Zu Zuschauer verschieben">👁️</button>`;
+        }
+        
     }
 
     // Toggle zu Spieler für eigenen Spectator (nicht während Spiel läuft)
     let toggleButton = '';
     if (isCurrentPlayer) {
-        toggleButton = `<button class="btn-toggle-role" onclick="toggleRole()" title="Zu Spieler wechseln">🎮</button>`;
-    }
+        if (isSpectator) {
+            toggleButton = `<button class="btn-toggle-role" onclick="toggleRole()" title="Zu Spieler wechseln">🎮</button>`;
+        } else {
+            toggleButton = `<button class="btn-toggle-role" onclick="toggleRole()" title="Zu Zuschauer wechseln">👁️</button>`;
+        }
+    } 
 
         
     item.innerHTML = `
-        <span>${statusIcon}${isCurrentPlayer ? '(Du)' : ''} ${escapeHtml(name)}</span>
+        <span>${statusIcon}${isCreator? '<span class="crown">👑</span>' : ''}${isCurrentPlayer ? '(Du)' : ''} ${escapeHtml(name)}</span>
         <span class="player-actions">
-            ${isCreator? '<span class="crown">👑</span>' : ''}
             ${toggleButton}
             ${forceRoleButton}
             ${kickButton}

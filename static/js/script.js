@@ -89,20 +89,27 @@ socket.on('connect', () => {
 });
 
 socket.on('reconnected', (data) => {
-    let username = data.username;
-    window.currentUsername = username;
-    currentUsernameDisplay.textContent = username;
-    
-    if (data.game) {
-        window.ui.showGameScreen(data.game);
-    } else if (joinGameId) {
-        // Wenn Join-Link vorhanden, hole Spielinfo
-        socket.emit('get_game_info_link_join', { game_id: joinGameId });
-        joinGameId = null; // Nur einmal versuchen
-        clearUrlParams();
-    } else {
-        window.ui.showServerLobby();
+
+    if(data.reload) {
+        clearSavedUsername();
+        showNotification(data.message, 'error');
+        //setTimeout(() => location.reload(), 1000);
+        window.ui.showLoginScreen();
+        return;
     }
+
+    if(data.success) {
+        if (data.game) {
+            window.ui.showGameScreen(data.game);
+        } else {
+            window.ui.showServerLobby();
+        }
+    } else if(data.message) {
+        showNotification(data.message, 'error');
+        
+    }
+
+    
 });
 
 // Handle game info response (für Join-Links)

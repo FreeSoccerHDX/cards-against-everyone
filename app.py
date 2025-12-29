@@ -214,16 +214,20 @@ def handle_set_username(data):
         del disconnect_timers[username]
     
     emit('username_set', {'username': username})
-    print(f'Username set: {username}', flush=True)
 
 @socketio.on('reconnect_user')
 def handle_reconnect(data):
     username = data.get('username', '').strip()
     
     if username in users:
-        #if users[username]['status'] == 'connected':
-        #    emit('username_error', {'message': 'Dieser Name ist bereits verbunden'})
-        #    return
+        # check connection status
+        user_status = users[username].get('status')
+        if user_status == 'connected':
+            emit('reconnected', {
+                'success': False,
+                'reload': True,
+                'message': 'Bereits verbunden'})
+            return
 
         # Aktualisiere SID
         users[username]['sid'] = request.sid
@@ -234,9 +238,13 @@ def handle_reconnect(data):
         # Lösche potenziellen Timer
         if username in disconnect_timers:
             del disconnect_timers[username]
-        
+
         game_id = users[username].get('game_id')
-        if game_id and game_id in games:
+        hasGame = game_id is not None and game_id in games
+
+        emit('username_set', {'username': username, 'hasGame': hasGame})
+        
+        if hasGame:
             # Informiere über Reconnect
             game = games[game_id]
             game.mark_player_connection_status(username, 'connected')
@@ -244,20 +252,22 @@ def handle_reconnect(data):
             # Trete SocketIO-Raum wieder bei um updates zu erhalten -> globale method von flask_socketio
             join_room(game_id)
             
-            
             game = games[game_id]
-
-            reconnect_data = {
-                "game": game.get_socket_game_data(current_player_cards=username, include_history=True),
-                "username": username
-            }
             
-            emit('reconnected', reconnect_data)
+            emit('reconnected', {
+                'success': True,
+                'game': game.get_socket_game_data(current_player_cards=username, include_history=True)
+            })
         else:
-            users[username]['game_id'] = None
-            emit('reconnected', {'username': username})
+            emit('reconnected', {
+                'success': False
+                })
     else:
-        emit('username_error', {'message': 'Sitzung abgelaufen, bitte Namen neu eingeben'})
+        emit('reconnected', {
+            'success': False,
+            'reload': True,
+            'message': 'Benutzername nicht gefunden'
+        })
 
 @socketio.on('create_game')
 def handle_create_game(data):
@@ -388,7 +398,7 @@ def handle_leave_game():
     leave_room(game_id) # entferne aus SocketIO-Raum
     
     # Spiel löschen wenn leer
-    if len(game.active_players) == 0 and len(game.spectators) == 0:
+    if game.owner == None:
         del games[game_id]
     else:
         # Informiere andere Spieler

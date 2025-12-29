@@ -32,19 +32,22 @@ function clearSavedUsername() {
 
 // Socket Events
 socket.on('username_set', (data) => {
+    console.log("Username set:", data, data.username);
     window.currentUsername = data.username;
     saveUsername(window.currentUsername);
     currentUsernameDisplay.textContent = window.currentUsername;
     usernameError.textContent = '';
-    
-    // Prüfe ob Join-Link vorhanden ist
-    if (joinGameId) {
-        // Hole erst Spielinformationen
-        socket.emit('get_game_info_link_join', { game_id: joinGameId });
-        joinGameId = null; // Nur einmal versuchen
-        clearUrlParams();
-    } else {
-        window.ui.showServerLobby();
+
+    if(!data.hasGame) {   
+        // Prüfe ob Join-Link vorhanden ist
+        if (joinGameId) {
+            // Hole erst Spielinformationen
+            socket.emit('get_game_info_link_join', { game_id: joinGameId });
+            joinGameId = null; // Nur einmal versuchen
+            clearUrlParams();
+        } else {
+            window.ui.showServerLobby();
+        }
     }
 });
 

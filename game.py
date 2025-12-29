@@ -192,9 +192,15 @@ class Game:
         if self.owner == playerName: # possible for spectator or player
             self.owner = None
             if len(self.active_players) > 0:
-                self.owner = self.active_players[0]
+                for player in self.active_players:
+                    if self.is_status_connected(player):
+                        self.owner = player
+                        break
             elif len(self.spectators) > 0:
-                self.owner = self.spectators[0]
+                for spectator in self.spectators:
+                    if self.is_status_connected(spectator):
+                        self.owner = spectator
+                        break
             else:
                 self.owner = None # Game can be deleted because no players/spectators are left
 
@@ -202,6 +208,9 @@ class Game:
             self.end_game()
 
         return True
+
+    def is_status_connected(self, playerName):
+        return self.player_status.get(playerName) == 'connected'
 
     def start_game(self):
         if self.is_game_started():
