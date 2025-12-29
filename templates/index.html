@@ -339,6 +339,18 @@
                 <!-- DarkMode/LightMode -->
                 <label for="dark-mode-toggle" id="dark-mode-label">Light Mode</label>
                 <input type="checkbox" id="dark-mode-toggle">
+                
+                <div class="volume-container">
+                    <input
+                        id="volume"
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value="50"
+                    >
+                    <div class="volume-value">Lautstärke: <span id="volumeValue">50</span></div>
+                </div>
             </div>
             <div class="modal-actions">
                 <button id="user-settings-close" class="btn-secondary">Schließen</button>

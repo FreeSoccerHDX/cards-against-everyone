@@ -3,6 +3,19 @@ const userSettingsModal = document.getElementById('user-settings-modal');
 const userSettingsClose = document.getElementById('user-settings-close');
 const darkModeToggle = document.getElementById('dark-mode-toggle');
 
+const sliderVolume = document.getElementById("volume");
+const outputVolumeValue = document.getElementById("volumeValue");
+
+var currentVolume = localStorage.getItem("volume") || 50;
+
+sliderVolume.addEventListener("input", (event) => {
+    const value = parseInt(event.target.value, 10);
+    outputVolumeValue.textContent = value;
+
+    currentVolume = value;
+    localStorage.setItem("volume", currentVolume);
+});
+
 userSettingsButton.addEventListener('click', () => {
     window.ui.showModal(userSettingsModal);
 });
