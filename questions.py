@@ -929,7 +929,7 @@ CARDS_QUESTIONS = [
     },
     
     {
-        "card_text": "Was würdest du machen, wenn du König von Deutschland wärst _____?",
+        "card_text": "Was würdest du machen, wenn du König von Deutschland wärst? _____",
         "num_blanks": 1
     },
     {
@@ -4757,11 +4757,11 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Was könnte man gegen hungernde Menschen in Afrika tun _____?",
+        "card_text": "Was könnte man gegen hungernde Menschen in Afrika tun ? <br>_____",
         "num_blanks": 1
     },
     {
-        "card_text": "Was könnte man gegen den Klimawandel tun _____?",
+        "card_text": "Was könnte man gegen den Klimawandel tun ? <br>_____",
         "num_blanks": 1
     },
     {

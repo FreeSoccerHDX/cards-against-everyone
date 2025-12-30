@@ -32,6 +32,7 @@ class Game:
         self.winner_choosen = False
         self.current_czar_selected_player = None   
         self.choosing_playerName = None
+        self.current_reactions = {}  # playerName: { to_player_index: points }
 
         # Game Settings
         self.settings = {    
@@ -57,13 +58,13 @@ class Game:
         for player in self.active_players + self.spectators:
             self.socketio.emit(channel, self.get_socket_game_data(
                     include_player_cards=False,
-                    current_player_cards=player,
+                    current_playerName=player,
                     include_history=include_history
                 )
             , room=self.global_player_data[player]['sid'])
 
 
-    def get_socket_game_data(self, include_player_cards=False, current_player_cards:str=None, include_history=False):
+    def get_socket_game_data(self, include_player_cards=False, current_playerName:str=None, include_history=False):
         return {
             "game_id": self.game_id,
             "owner": self.owner,
@@ -73,7 +74,7 @@ class Game:
             "history": self.history if include_history else [],
             "current_round": self.current_round,
             "playerCards": self.playerCards if include_player_cards else {},
-            "currentPlayerCards": self.playerCards.get(current_player_cards, []) if current_player_cards else [],
+            "currentPlayerCards": self.playerCards.get(current_playerName, []) if current_playerName else [],
             "current_black_card": self.current_black_card,
             "player_mapping": self.player_mapping,
             "winning_white_cards": self.winning_white_cards,
@@ -86,7 +87,8 @@ class Game:
             "currentTimerSeconds": self.currentTimerSeconds,
             "paused": self.paused,
             "winner_choosen": self.winner_choosen,
-            "current_czar_selected_player": self.current_czar_selected_player if self.czar == current_player_cards else None,
+            "current_czar_selected_player": self.current_czar_selected_player if self.czar == current_playerName else None,
+            "player_reactions": self.current_reactions[current_playerName] if current_playerName in self.current_reactions else {},
             "settings": self.settings
         }
     
@@ -310,9 +312,17 @@ class Game:
 
     def finalize_winner_choice(self):
         winning_cards = self.submitted_white_cards[self.current_czar_selected_player]
+
+        winning_reaction_points = 0
+        for reactor, reactions in self.current_reactions.items():
+            for to_player_index, points in reactions.items():
+                if self.player_mapping[to_player_index] == self.current_czar_selected_player:
+                    winning_reaction_points += points
+
         self.winning_white_cards = {
             'playerName': self.current_czar_selected_player,
-            'cards': winning_cards
+            'cards': winning_cards,
+            'reaction_points': winning_reaction_points
         }
         self.scores[self.current_czar_selected_player] += 1
         self.history.append({
@@ -321,6 +331,7 @@ class Game:
             'submitted_cards': self.submitted_white_cards,
             'playerName': self.current_czar_selected_player,
             'winning_cards': winning_cards,
+            'reaction_points': winning_reaction_points,
             'czar': self.choosing_playerName # can be None if auto-chosen
         })
 
@@ -328,6 +339,7 @@ class Game:
         self.choosing_playerName = None
         self.winner_choosen = False
         self.submitted_white_cards = {}
+        self.current_reactions = {}
 
         self.state = 'countdown_next_round'
         self.currentTimerTotalSeconds = self.settings["timeAfterWinnerChosen"]
@@ -419,4 +431,29 @@ class Game:
         self.currentTimerTotalSeconds = 0
         self.currentTimerSeconds = 0
         self.paused = False
-        
+        self.winner_choosen = False
+        self.current_czar_selected_player = None   
+        self.choosing_playerName = None
+    
+
+    def submit_reaction(self, username, to_player_index, points):
+        if self.state != 'choosing_winner':
+            return False, "Reaktionen können nur während der Czar-Wahl-Phase abgegeben werden"
+        if username not in self.active_players:
+            return False, "Nur aktive Spieler können Reaktionen abgeben"
+        if to_player_index < 0 or to_player_index >= len(self.player_mapping):
+            return False, "Ungültiger Spielerindex für Reaktion"
+        if points > 2 or points < -2:
+            return False, "Punkte für Reaktion müssen zwischen -2 und 2 liegen"
+        if username == self.czar:
+            return False, "Der Czar kann keine Reaktionen abgeben"
+        if self.player_mapping[to_player_index] == username:
+            return False, "Du kannst keine Reaktion auf deine eigene Antwort abgeben"
+
+        if username not in self.current_reactions:
+            self.current_reactions[username] = {}
+
+        self.current_reactions[username][to_player_index] = points
+        #print(self.current_reactions)
+
+        return True, "Reaktion abgegeben"

@@ -258,7 +258,7 @@ def handle_reconnect(data):
             
             emit('reconnected', {
                 'success': True,
-                'game': game.get_socket_game_data(current_player_cards=username, include_history=True)
+                'game': game.get_socket_game_data(current_playerName=username, include_history=True)
             })
         else:
             emit('reconnected', {
@@ -270,6 +270,39 @@ def handle_reconnect(data):
             'reload': True,
             'message': 'Benutzername nicht gefunden'
         })
+
+
+@socketio.on('submit_reaction')
+def handle_submit_reaction(data):
+    success,username,game = get_current_data(need_game=True)
+    if not success:
+        return
+    
+    to_player_index = data.get('to_player_index', -1)
+    points = data.get('points', 0)
+
+    try:
+        points = int(points)
+        to_player_index = int(to_player_index)
+    except:
+        emit('error', {'message': 'Falscher Input'})
+        return
+
+    if to_player_index < 0 or to_player_index >= len(game.player_mapping):
+        emit('error', {'message': f'Ungültige Spielerindex {to_player_index} / {len(game.player_mapping)-1}'})
+        return
+
+    success,message = game.submit_reaction(username, to_player_index, points)
+    if not success:
+        emit('error', {'message': message})
+        return
+    
+    # Benachrichtige den Spieler über den erfolgreichen Empfang
+    emit('game_state_update', game.get_socket_game_data(
+                    include_player_cards=False,
+                    current_playerName=username,
+                    include_history=False
+                ))
 
 @socketio.on('create_game')
 def handle_create_game(data):
@@ -335,7 +368,7 @@ def handle_get_game_state():
     if not success:
         return
     
-    emit('game_state_update', game.get_socket_game_data(current_player_cards=username, include_history=True))
+    emit('game_state_update', game.get_socket_game_data(current_playerName=username, include_history=True))
 
 @socketio.on('join_game')
 def handle_join_game(data):
@@ -363,7 +396,7 @@ def handle_join_game(data):
         users[username]['game_id'] = game_id
         join_room(game_id)
     
-        emit('game_joined', game.get_socket_game_data(current_player_cards=username, include_history=True))
+        emit('game_joined', game.get_socket_game_data(current_playerName=username, include_history=True))
         
         # Informiere andere Spieler
         emit('player_joined', {

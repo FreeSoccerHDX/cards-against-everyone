@@ -1,0 +1,33 @@
+.reaction-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: right;
+}
+
+.reaction-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    transition: transform 0.1s;
+}
+
+.reaction-button:hover {
+    transform: scale(1.2);
+}
+
+.selected-reaction {
+    border: 2px solid #007BFF;
+    border-radius: 5px;
+}
+
+.highlight-max-reaction-points {
+    font-weight: bold;
+    color: #28a745;
+}
+
+.highlight-min-reaction-points {
+    font-weight: bold;
+    color: #dc3545;
+}

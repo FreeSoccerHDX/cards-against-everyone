@@ -556,6 +556,8 @@ function update_czarSelection(game) {
     let winner_choosen = game.winner_choosen || false;
     let current_czar_selected_player = game.current_czar_selected_player || null;
 
+    let player_reactions = game.player_reactions || {}; // { player_index: points }
+
     votingPhaseTitle.textContent = isCzar ?
         (winner_choosen ? 'Du kannst die Auswahl noch ändern' : 'Wähle die beste Antwort!') 
         :
@@ -587,7 +589,41 @@ function update_czarSelection(game) {
         
         if (isCzar) {
             optionEl.addEventListener('click', () => selectWinner(i, optionEl));
+        } else {
+            // add buttons for reactions (lach-Emoji, Daumen hoch, Daumen runter, schädel-emoji -> gibt 2,1,-1,-2 punkte) 
+            let reactionsDiv = document.createElement('div');
+            reactionsDiv.className = 'reaction-buttons';
+            
+            const reactions = [
+                { emoji: '😂', points: 2 },
+                { emoji: '👍', points: 1 },
+                { emoji: '👎', points: -1 },
+                { emoji: '💀', points: -2 }
+            ];
+            let currentPoints = player_reactions[i] || 0;
+
+            reactions.forEach(reaction => {
+                const btn = document.createElement('button');
+                btn.className = 'reaction-button';
+                btn.textContent = reaction.emoji;
+                btn.title = `Gib ${reaction.points > 0 ? '+' : ''}${reaction.points} Punkte`;
+                
+                if(currentPoints === reaction.points) {
+                    btn.classList.add('selected-reaction');
+                }
+
+                btn.addEventListener('click', () => {
+                    socket.emit('submit_reaction', { to_player_index: i, points: reaction.points });
+                    showNotification(`Du hast ${reaction.points > 0 ? '+' : ''}${reaction.points} Punkte gegeben!`, 'success');
+                });
+                reactionsDiv.appendChild(btn);
+            });
+            
+            optionEl.appendChild(reactionsDiv);
         }
+
+
+
         answerOptionsList.appendChild(optionEl);
 
     }
@@ -865,6 +901,19 @@ function displayRoundHistory(history) {
         container.innerHTML = '<p style="text-align: center; color: #999;">Keine Runden gespielt???</p>';
         return;
     }
+
+    let highestReactionPoints = 0;
+    let lowestReactionPoints = 0;
+
+    history.forEach((round) => {
+        reaction_points = round.reaction_points || 0;
+        if(reaction_points > highestReactionPoints) {
+            highestReactionPoints = reaction_points;
+        }
+        if(reaction_points < lowestReactionPoints) {
+            lowestReactionPoints = reaction_points;
+        }
+    });
     
     // Zeige Runden in umgekehrter Reihenfolge (neueste zuerst)
     history.slice().reverse().forEach((round) => {
@@ -881,9 +930,13 @@ function displayRoundHistory(history) {
         const czarColors = generatePlayerColor(round.czar || '[AUTOMATIC]');
         const winnerColors = generatePlayerColor(round.playerName);
         
+        // Highlight reaction points if this round has the highest
+        let isMaxReaction = (round.reaction_points || 0) === highestReactionPoints && highestReactionPoints > 0;
+        let isMinReaction = (round.reaction_points || 0) === lowestReactionPoints && lowestReactionPoints < 0;
         card.innerHTML = `
             <div class="history-card-header">
                 <span class="round-number">Runde ${round.round+1}</span>
+                <p${isMaxReaction ? ' class="highlight-max-reaction-points"' : (isMinReaction ? ' class="highlight-min-reaction-points"' : '')}>Reaktionspunkte: ${round.reaction_points || 0} </p>
             </div>
             <div class="history-question-filled">
                 ${filledQuestion}
