@@ -972,8 +972,7 @@ button {
     animation: cardFlip 1.2s ease-in-out;
 }
 
-.result-question .filled-answer,
-#end-question .filled-answer {
+.filled-answer {
     color: #667eea;
     background: rgba(102, 126, 234, 0.1);
     padding: 4px 8px;
@@ -981,10 +980,19 @@ button {
     font-weight: bold;
 }
 
+.selected-czar-choice {
+    border: 3px solid #ff9800 !important;
+    box-shadow: 0 0 10px rgba(255, 152, 0, 0.7);
+}
+
 #end-question .filled-answer {
     color: #ffd700;
     background: rgba(255, 215, 0, 0.2);
     font-size: 1.15em;
+}
+
+.pending-game {
+    border: 3px dashed #ff9800 !important;
 }
 
 .result-answers {
@@ -1058,6 +1066,27 @@ button {
     display: flex;
     flex: space-between;
 }
+
+
+@property --progress {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+.czarvoting-endtimer {
+  border-radius: 15px;
+  /* Trick: Ein kleinerer innerer Hintergrund überdeckt das Zentrum */
+  background: 
+    linear-gradient(var(--color-defaultpanel-bg), var(--color-defaultpanel-bg)) padding-box, /* Inhalt-Hintergrund */
+    conic-gradient(#00ffcc var(--progress), #44444400 0) border-box; /* Der "Rahmen" */
+  border: 5px solid transparent;
+  
+  transition: --progress 1s linear;
+}
+
+
+
 
 /* Responsive */
 @media (max-width: 768px) {

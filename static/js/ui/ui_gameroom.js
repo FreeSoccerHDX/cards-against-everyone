@@ -145,9 +145,11 @@ socket.on('player_joined', (data) => {
 socket.on('player_status_changed', (data) => {
     // Update Creator falls vorhanden (könnte sich durch Disconnects geändert haben)
     //console.error("unhandled player_status_changed:", data);
-    window.currentGameData.player_status[data.username] = data.status;
-    updateLobbyPlayerList(window.currentGameData);
-    update_scores(window.currentGameData);
+    if(window.currentGameData != null) {
+        window.currentGameData.player_status[data.username] = data.status;
+        updateLobbyPlayerList(window.currentGameData);
+        update_scores(window.currentGameData);
+    }
 });
 
 // Spieler kicked from the game
@@ -233,6 +235,18 @@ socket.on('game_created', (game) => {
 
 
 function updateTimerDisplay(timeLeft, maxTime) {
+    
+    if(window.currentGameData.state == "choosing_winner") {
+        if(window.currentGameData.winner_choosen) {
+            let maxTimeD = 1.0 * maxTime;
+            let timeLeftD = 1.0 * timeLeft;
+            let percentLeft = 10+100-(timeLeftD / maxTimeD) * 100;
+            document.querySelector('.czarvoting-endtimer').style.setProperty('--progress', `${percentLeft}%`);
+        } else {
+            document.querySelector('.czarvoting-endtimer').style.setProperty('--progress', `0%`);
+        }
+    }
+
     // Timer ausblenden bei -1
     timerDisplay.classList.add('hidden');
     countdownTimer.classList.add('hidden');
@@ -403,6 +417,9 @@ function updateGameState_ChoosingCards(game) {
     update_timer(game);
     update_scores(game);
 
+    questionText.classList.remove('winner-flip');
+    votingPhase.classList.add('hidden');
+
     if(game.czar == window.currentUsername || game.spectators.includes(window.currentUsername)) {
         update_czarDeliveryInfo(Object.keys(game.submitted_white_cards).length, game.active_players.length-1);
     } else {
@@ -417,7 +434,7 @@ function updateGameState_ChoosingCards(game) {
     resultPhase.classList.add('hidden');
 }
 
-function updateGameState_ChooseingWinner(game) {
+function updateGameState_ChoosingWinner(game) {
     displayState(game);
     // need: czar, owner, question, answer-options, timer, player(-status), gamesettings(max punkte, max runden),
     update_ownerControls(game);
@@ -496,19 +513,19 @@ function update_gameEnd(game) {
 function update_resultPhase(game) {
     resultPhase.classList.remove('hidden');
     
-    let questionText = game.current_black_card.card_text;
+    let questionBlackText = game.current_black_card.card_text;
     let winning_white_cards = game.winning_white_cards;
     let winningUsername = winning_white_cards.playerName;
     let winningAnswers = winning_white_cards.cards;
 
     // Ersetze jedes "_____" durch die entsprechende Antwort
     winningAnswers.forEach(answer => {
-        questionText = questionText.replace('_____', `<strong class="filled-answer">${answer}</strong>`);
+        questionBlackText = questionBlackText.replace('_____', `<strong class="filled-answer">${answer}</strong>`);
     });
-    resultQuestion.innerHTML = questionText;
+    questionText.innerHTML = questionBlackText;
+    questionText.classList.add('winner-flip');
     
     // Triggere Schaukel-Animation
-    resultQuestion.classList.add('winner-flip');
 
     if(window.currentUsername === winningUsername) {
         roundWinner.textContent = "Du gewinnst diese Runde!";
@@ -536,9 +553,13 @@ function update_czarSelection(game) {
     let playermapping = game.player_mapping;
     let currentQuestion = game.current_black_card;
 
+    let winner_choosen = game.winner_choosen || false;
+    let current_czar_selected_player = game.current_czar_selected_player || null;
+
     votingPhaseTitle.textContent = isCzar ?
-        'Wähle die beste Antwort!' :
-        'Warte während der Czar am auswählen ist...';
+        (winner_choosen ? 'Du kannst die Auswahl noch ändern' : 'Wähle die beste Antwort!') 
+        :
+        (winner_choosen ? 'Der Czar hat gewählt...' : 'Warte während der Czar am auswählen ist...');
 
     for (const i in playermapping) {
         // Finde die Option, die zu diesem Spieler gehört
@@ -551,12 +572,15 @@ function update_czarSelection(game) {
         if (!isCzar) {
             optionEl.classList.add('readonly');
         }
+        if(current_czar_selected_player === playerName) {
+            optionEl.classList.add('selected-czar-choice');
+        }
 
         const answerText = currentQuestion.card_text;
         let filledText = answerText;
         
         cards.forEach((answer, i) => {
-            filledText = filledText.replace('_____', `<strong>${escapeHtml(answer)}</strong>`);
+            filledText = filledText.replace('_____', `<strong class="filled-answer">${escapeHtml(answer)}</strong>`);
         });
         
         optionEl.innerHTML = `<div class="answer-text">${filledText}</div>`;
@@ -611,6 +635,8 @@ function update_question(game) {
 function update_timer(game) {
     // der timer falls existiert aktualisieren oder ausblenden
     updateTimerDisplay(game.currentTimerSeconds, game.currentTimerTotalSeconds);
+
+
 }
 
 function update_scores(game) {
@@ -713,7 +739,7 @@ function updateGameRoom(game) {
         updateGameState_ChoosingCards(game);
     } else if(state === "choosing_winner") {
         // zeig jedem spieler die abgegebenen antworten in die frage integriert und lass den czar den gewinner wählen
-        updateGameState_ChooseingWinner(game);
+        updateGameState_ChoosingWinner(game);
     } else if(state === "countdown_next_round") {
         // zeig jedem die gewonnene karte und den punktestand, bereite die nächste runde vor mit zentralem countdown
         updateGameState_CountdownNextRound(game);

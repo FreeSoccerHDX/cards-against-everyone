@@ -67,7 +67,9 @@ def universal_timer_task():
  
 
 def broadcastPublicGames():
-    socketio.emit('public_games_list', {'games': get_public_games()})
+    for username in users.keys():
+        sid = users[username]['sid']
+        socketio.emit('public_games_list', {'games': get_public_games(username)}, room=sid)
 
 def cleanup_user(username):
     """Entfernt Benutzer nach 30 Sekunden Inaktivität"""
@@ -271,10 +273,8 @@ def handle_reconnect(data):
 
 @socketio.on('create_game')
 def handle_create_game(data):
-    username = users_by_sid.get(request.sid, None)
-    
-    if not username:
-        emit('error', {'message': 'Nicht angemeldet'})
+    success,username,game = get_current_data(need_game=False)
+    if not success:
         return
     
     game_name = data.get('name', username + "'s Spiel").strip()
@@ -294,30 +294,34 @@ def handle_create_game(data):
 
 @socketio.on('get_public_games')
 def handle_get_public_games():
-    emit('public_games_list', {'games': get_public_games()})
+    success,username,game = get_current_data(need_game=False)
+    if not success:
+        return
+    emit('public_games_list', {'games': get_public_games(username)})
 
 @socketio.on('get_game_info_link_join')
 def handle_get_game_info(data):
-    game_id = data.get('game_id')
-    if game_id not in games:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         emit('game_info_link_join_error', {'message': 'Spiel nicht gefunden'})
         return
     
-    game = games[game_id]
     emit('game_info_link_join', {
-        'id': game_id,
+        'id': game.game_id,
         'name': game.settings["gameName"],
         'has_password': bool(game.settings["password"]),
         'started': game.is_game_started()
     })
 
-def get_public_games():
+def get_public_games(username=None):
     """Gibt alle öffentlichen Spiele zurück"""
     public_games = []
     for game_id, game in games.items():
-        if (not game.is_game_started() and game.settings["publicVisible"]) or (game.is_game_started() and game.settings["publicVisibleDuringGame"]):
+        pending = game.is_pending_player(username)
+        if pending or ((not game.is_game_started() and game.settings["publicVisible"]) or (game.is_game_started() and game.settings["publicVisibleDuringGame"])):
             public_games.append({
                 'id': game_id,
+                'is_pending': pending,
                 'name': game.settings["gameName"],
                 'players': len(game.active_players),
                 'has_password': bool(game.settings["password"])
@@ -327,23 +331,16 @@ def get_public_games():
 @socketio.on('get_game_state')
 def handle_get_game_state():
     """Sendet den aktuellen Spielzustand an den anfragenden Client"""
-    username = users_by_sid.get(request.sid, None)
-    
-    if not username:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
     
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     emit('game_state_update', game.get_socket_game_data(current_player_cards=username, include_history=True))
 
 @socketio.on('join_game')
 def handle_join_game(data):
-    username = users_by_sid.get(request.sid, None)
-    if not username:
-        emit('error', {'message': 'Nicht angemeldet'})
+    success,username,game = get_current_data(need_game=False)
+    if not success:
         return
     
     game_id = data.get('game_id')
@@ -361,7 +358,7 @@ def handle_join_game(data):
         emit('error', {'message': 'Falsches Passwort'})
         return
     
-    success = game.add_player(username, isSpectator=is_spectator)
+    success, message = game.add_player(username, isSpectator=is_spectator)
     if success:
         users[username]['game_id'] = game_id
         join_room(game_id)
@@ -376,55 +373,62 @@ def handle_join_game(data):
         }, room=game_id, include_self=False)
 
     else:
-        emit('error', {'message': 'Login nicht möglich.'})
+        emit('error', {'message': message})
             
     # Aktualisiere Lobby
     broadcastPublicGames()
 
 @socketio.on('leave_game')
 def handle_leave_game():
-    username = users_by_sid.get(request.sid, None)
-    if not username:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
     
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     game.remove_player(username)
     
     users[username]['game_id'] = None
-    leave_room(game_id) # entferne aus SocketIO-Raum
+    leave_room(game.game_id) # entferne aus SocketIO-Raum
     
     # Spiel löschen wenn leer
     if game.owner == None:
-        del games[game_id]
+        del games[game.game_id]
     else:
         # Informiere andere Spieler
         emit('player_left', {
             'username': username,
             'game': game.get_socket_game_data(include_history=True)
-        }, room=game_id)
+        }, room=game.game_id)
     
     emit('left_game', {})
     # Aktualisiere Lobby
     broadcastPublicGames()
 
 
+# return succes,username,game
+def get_current_data(need_game):
+    """Hilfsfunktion um aktuellen Zustand des Sockets zu bekommen"""
+    username = users_by_sid.get(request.sid, None)
+    if not username:
+        emit('error', {'message': 'Nicht angemeldet'})
+        return False, None, None
+    if not need_game:
+        return True, username, None
+    else:
+        game_id = users[username].get('game_id')
+        if not game_id or game_id not in games:
+            emit('error', {'message': 'Nicht in einem Spiel'})
+            return False, username, None
+        
+        game = games[game_id]
+        return True, username, game
+    
+
 
 @socketio.on('kick_player')
 def handle_kick_player(data):
-    kicker = users_by_sid.get(request.sid, None)
-    
-    if not kicker:
+    success,kicker,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[kicker].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     
     # Nur Creator kann kicken
     if game.owner != kicker:
@@ -460,22 +464,15 @@ def handle_kick_player(data):
             socketio.emit('player_left', {
                 'username': kicked_user,
                 'game': game.get_socket_game_data(include_history=True)
-            }, room=game_id)
+            }, room=game.game_id)
             
             broadcastPublicGames()
 
 @socketio.on('toggle_role')
 def handle_toggle_role():
-    username = users_by_sid.get(request.sid, None)
-    
-    if not username:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     
     # Spiel darf nicht gestartet sein
     if game.is_game_started():
@@ -491,7 +488,7 @@ def handle_toggle_role():
             'username': username,
             'role': 'Spieler' if was_spectator else 'Zuschauer',
             'game': game.get_socket_game_data(),
-        }, room=game_id)
+        }, room=game.game_id)
         
         emit('success', {'message': f'Du bist jetzt {"Spieler" if was_spectator else "Zuschauer"}'})
     else:
@@ -500,16 +497,9 @@ def handle_toggle_role():
 @socketio.on('force_role')
 def handle_force_role(data):
     """Creator erzwingt Rollenwechsel für anderen Spieler"""
-    creator = users_by_sid.get(request.sid, None)
-    
-    if not creator:
+    success,creator,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[creator].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     
     # Nur Creator kann Rollen erzwingen
     if game.owner != creator:
@@ -539,7 +529,7 @@ def handle_force_role(data):
             'role': 'Spieler' if was_spectator else 'Zuschauer',
             'game': game.get_socket_game_data(),
             'forced_by': creator
-        }, room=game_id)
+        }, room=game.game_id)
         
         emit('success', {'message': f'Du bist jetzt {"Spieler" if was_spectator else "Zuschauer"}'})
     else:
@@ -547,16 +537,9 @@ def handle_force_role(data):
 
 @socketio.on('update_settings')
 def handle_update_settings(settings):
-    username = users_by_sid.get(request.sid, None)
-    
-    if not username:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     
     # Nur Ersteller kann Einstellungen ändern
     if game.owner != username:
@@ -574,15 +557,9 @@ def handle_update_settings(settings):
 
 @socketio.on('start_game')
 def handle_start_game():
-    username = users_by_sid.get(request.sid, None)
-    if not username:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     
     # Nur Ersteller kann Spiel starten
     if game.owner != username:
@@ -596,7 +573,7 @@ def handle_start_game():
         return
     
     if game.start_game():
-        socketio.emit('info', {'message': f'Spiel gestartet'}, room=game_id)
+        socketio.emit('info', {'message': f'Spiel gestartet'}, room=game.game_id)
         game.send_socket_game_update_for_all(channel='game_started')
         
     # Aktualisiere Lobby in jedem Fall
@@ -605,34 +582,8 @@ def handle_start_game():
 @socketio.on('submit_answers')
 def handle_submit_answers(data):
     """Spieler gibt Antworten ab"""
-    username = users_by_sid.get(request.sid, None)
-    if not username:
-        emit('error', {'message': 'Nicht angemeldet'})
-        return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        emit('error', {'message': 'Nicht in einem Spiel'})
-        return
-    
-    game = games[game_id]
-
-    # Spectators dürfen keine Antworten abgeben
-    if username in game.spectators:
-        emit('error', {'message': 'Zuschauer können nicht mitspielen'})
-        return
-    
-    if game.paused:
-        emit('error', {'message': 'Spiel ist pausiert'})
-        return
-    
-    if username == game.czar:
-        emit('error', {'message': 'Der Card Czar darf nicht antworten'})
-        return
-
-    # 'lobby', 'choosing_cards', 'choosing_winner', 'countdown_next_round', 'game_ended'
-    if game.state != "choosing_cards":
-        emit('error', {'message': 'Es ist nicht die Phase zum Antworten abgeben'})
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
     
     # Validiere Antworten
@@ -656,7 +607,7 @@ def handle_submit_answers(data):
         'spectators': game.spectators,
         'submitted_count': len(game.submitted_white_cards),
         'total_players': len(game.active_players) - 1  # -1 für Czar
-    }, room=game_id)
+    }, room=game.game_id)
 
     # Prüfe ob alle VERBUNDENEN aktiven Spieler abgegeben haben
     czar = game.czar
@@ -674,27 +625,8 @@ def handle_submit_answers(data):
 @socketio.on('vote_winner')
 def handle_vote_winner(data):
     """Card Czar wählt Gewinner"""
-    username = users_by_sid.get(request.sid, None)
-    
-    if not username:
-        return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
-
-    if game.paused:
-        emit('error', {'message': 'Spiel ist pausiert'})
-        return
-    
-    if game.state != "choosing_winner":
-        emit('error', {'message': 'Nicht in der Voting-Phase'})
-        return
-    
-    if username != game.czar:
-        emit('error', {'message': 'Nur der Card Czar darf abstimmen'})
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
     
     winner_index = data.get('winner_index')
@@ -723,15 +655,9 @@ def handle_vote_winner(data):
 
 @socketio.on('pause_game')
 def handle_pause_game():
-    username = users_by_sid.get(request.sid, None)
-    if not username:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     
     # Nur Ersteller kann pausieren
     if game.owner != username:
@@ -749,19 +675,13 @@ def handle_pause_game():
     game.paused = True
     
     # Informiere alle Spieler mit aktuellem Timer
-    socketio.emit('game_paused', {'time_left': game.currentTimerSeconds}, room=game_id)
+    socketio.emit('game_paused', {'time_left': game.currentTimerSeconds}, room=game.game_id)
 
 @socketio.on('resume_game')
 def handle_resume_game():
-    username = users_by_sid.get(request.sid, None)
-    if not username:
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        return
-    
-    game = games[game_id]
     
     # Nur Ersteller kann fortsetzen
     if game.owner != username:
@@ -779,22 +699,13 @@ def handle_resume_game():
     game.paused = False
     
     # Informiere alle Spieler - Timer läuft automatisch weiter durch universal_timer_task
-    socketio.emit('game_resumed', {'time_left': game.currentTimerSeconds}, room=game_id)
+    socketio.emit('game_resumed', {'time_left': game.currentTimerSeconds}, room=game.game_id)
 
 @socketio.on('reset_to_lobby')
 def handle_reset_to_lobby():
-    username = users_by_sid.get(request.sid, None)
-    
-    if not username:
-        emit('error', {'message': 'Nicht angemeldet'})
+    success,username,game = get_current_data(need_game=True)
+    if not success:
         return
-    
-    game_id = users[username].get('game_id')
-    if not game_id or game_id not in games:
-        emit('error', {'message': 'Nicht in einem Spiel'})
-        return
-    
-    game = games[game_id]
     
     # Nur Ersteller kann zurück zur Lobby
     if game.owner != username:

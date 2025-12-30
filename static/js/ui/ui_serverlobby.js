@@ -47,7 +47,7 @@ function displayPublicGames(_games) {
     const filter = gameSearchInput.value.toLowerCase();
     if (filter) {
         filteredGames = lastSavedGames.filter(game => 
-            game.name.toLowerCase().includes(filter)
+            (game.name.toLowerCase().includes(filter) || game.is_pending)
         );
     }
 
@@ -62,6 +62,9 @@ function displayPublicGames(_games) {
 
         const card = document.createElement('div');
         card.className = 'game-card';
+        if(game.is_pending) {
+            card.classList.add('pending-game');
+        }
         card.innerHTML = `
             <h3>${escapeHtml(game.name)} ${gameStarted ? '(Laufendes Spiel)' : ''}</h3>
             <div class="game-info">

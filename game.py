@@ -29,6 +29,9 @@ class Game:
         self.currentTimerTotalSeconds = 0  # total seconds for current timer
         self.currentTimerSeconds = 0      # remaining seconds for current timer
         self.paused = False # whether the game is paused (owner can pause during choosing phases)
+        self.winner_choosen = False
+        self.current_czar_selected_player = None   
+        self.choosing_playerName = None
 
         # Game Settings
         self.settings = {    
@@ -82,6 +85,8 @@ class Game:
             "currentTimerTotalSeconds": self.currentTimerTotalSeconds,
             "currentTimerSeconds": self.currentTimerSeconds,
             "paused": self.paused,
+            "winner_choosen": self.winner_choosen,
+            "current_czar_selected_player": self.current_czar_selected_player if self.czar == current_player_cards else None,
             "settings": self.settings
         }
     
@@ -119,11 +124,18 @@ class Game:
             if self.state == 'choosing_cards':
                 self.autosubmit_white_cards(ignoreConnection=True)
             elif self.state == 'choosing_winner':
-                # auto choose random winner
-                possible_winners = list(self.submitted_white_cards.keys())
-                if possible_winners:
-                    chosen_winner = random.choice(possible_winners)
-                    self.choose_winner(chosen_winner, choosing_playerName=None)
+                if self.winner_choosen:
+                    self.finalize_winner_choice()
+                    self.winner_choosen = False
+                    self.current_czar_selected_player = None
+                    self.choosing_playerName = None
+                else:
+                    # auto choose random winner
+                    possible_winners = list(self.submitted_white_cards.keys())
+                    if possible_winners:
+                        chosen_winner = random.choice(possible_winners)
+                        self.choose_winner(chosen_winner, choosing_playerName=None)
+
             elif self.state == 'countdown_next_round':
                 success,error = self.next_round()
                 if not success:
@@ -136,22 +148,24 @@ class Game:
 
     def add_player(self, playerName, isSpectator):
         if not playerName:
-            return False
+            return False, "Ungültiger Spielername"
         if len(self.active_players) >= self.settings["maxPlayers"] and not isSpectator:
-            return False
-        if playerName in self.active_players:
-            return False
-        if playerName in self.spectators:
-            return False
+            return False, "Maximale Spieleranzahl erreicht"
+        if playerName in self.active_players and self.is_status_connected(playerName):
+            return False, "Spieler bereits im Spiel"
+        if playerName in self.spectators and self.is_status_connected(playerName):
+            return False, "Spieler bereits Zuschauer"
 
         if isSpectator:
-            self.spectators.append(playerName)
+            if not playerName in self.spectators:
+                self.spectators.append(playerName)
         else:
-            self.active_players.append(playerName)
+            if not playerName in self.active_players:
+                self.active_players.append(playerName)
         
         self.player_status[playerName] = 'connected'
 
-        return True
+        return True, "Spieler hinzugefügt"
     
     def mark_player_connection_status(self, playerName, status):
         if playerName in self.player_status:
@@ -256,10 +270,14 @@ class Game:
                     self.submit_white_cards(playerName, chosen_indices)
 
     def submit_white_cards(self, playerName, white_cards_indicies):
+        if self.paused:
+            return False,"Spiel ist pausiert"
         if self.state != 'choosing_cards':
             return False,"Falsche Spielphase"
+        if playerName in self.spectators:
+            return False,"Zuschauer können nicht mitspielen"
         if playerName == self.czar:
-            return False,"Du bist Czar"
+            return False,"Der Czar darf nicht antworten"
         if playerName not in self.active_players:
             return False,"Du bist kein aktiver Spieler"
         if playerName in self.submitted_white_cards:
@@ -290,7 +308,35 @@ class Game:
 
         return True,"Erfiolgreich abgegeben"
 
+    def finalize_winner_choice(self):
+        winning_cards = self.submitted_white_cards[self.current_czar_selected_player]
+        self.winning_white_cards = {
+            'playerName': self.current_czar_selected_player,
+            'cards': winning_cards
+        }
+        self.scores[self.current_czar_selected_player] += 1
+        self.history.append({
+            'round': self.current_round,
+            'black_card': self.current_black_card,
+            'submitted_cards': self.submitted_white_cards,
+            'playerName': self.current_czar_selected_player,
+            'winning_cards': winning_cards,
+            'czar': self.choosing_playerName # can be None if auto-chosen
+        })
+
+        self.current_czar_selected_player = None
+        self.choosing_playerName = None
+        self.winner_choosen = False
+        self.submitted_white_cards = {}
+
+        self.state = 'countdown_next_round'
+        self.currentTimerTotalSeconds = self.settings["timeAfterWinnerChosen"]
+        self.currentTimerSeconds = self.currentTimerTotalSeconds
+
+
     def choose_winner(self, winner_playerName, choosing_playerName=None):
+        if self.paused:
+            return False,"Spiel ist pausiert"
         if self.state != 'choosing_winner':
             return False,"Falsche Spielphase"
         if choosing_playerName and choosing_playerName != self.czar:
@@ -298,26 +344,28 @@ class Game:
         if winner_playerName not in self.submitted_white_cards:
             return False,"Ungültiger Gewinner"
 
-        winning_cards = self.submitted_white_cards[winner_playerName]
-        self.winning_white_cards = {
-            'playerName': winner_playerName,
-            'cards': winning_cards
-        }
-        self.scores[winner_playerName] += 1
-        self.history.append({
-            'round': self.current_round,
-            'black_card': self.current_black_card,
-            'submitted_cards': self.submitted_white_cards,
-            'playerName': winner_playerName,
-            'winning_cards': winning_cards,
-            'czar': choosing_playerName # can be None if auto-chosen
-        })
+        self.current_czar_selected_player = winner_playerName
+        self.choosing_playerName = choosing_playerName
 
-        self.state = 'countdown_next_round'
-        self.currentTimerTotalSeconds = self.settings["timeAfterWinnerChosen"]
-        self.currentTimerSeconds = self.currentTimerTotalSeconds
+        if not self.winner_choosen:
+            self.winner_choosen = True
+            self.currentTimerTotalSeconds = 10
+            self.currentTimerSeconds = 10
+
+        if(self.choosing_playerName is None):
+            # auto-chosen winner
+            self.finalize_winner_choice()
+            return True,"Gewinner gewählt"
 
         return True,"Gewinner gewählt"
+
+    def is_pending_player(self, playerName):
+        if not playerName:
+            return False
+        # Check if player is active/spectator and connection status is not connected
+        if playerName in self.active_players or playerName in self.spectators:
+            return not self.is_status_connected(playerName)
+
 
     def next_round(self):
         if self.state != 'countdown_next_round':
