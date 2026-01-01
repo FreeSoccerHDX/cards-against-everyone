@@ -10,91 +10,20 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/user-settings.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/reactions.css') }}">
     
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min-4.8.3.js') }}"></script>
 </head>
 <body>
     <!-- Login Screen -->
-    <div id="login-screen" class="screen active">
-        <div class="container">
-            <h1>Cards Against Everyone</h1>
-            <div class="username-form">
-                <input type="text" id="username-input" placeholder="Dein Name" maxlength="30" autofocus>
-                <button id="username-submit">Los geht's</button>
-                <div id="username-error" class="error-message"></div>
-            </div>
-        </div>
-    </div>
+    {% include '_screen_login.html' %}
 
     <!-- Lobby Screen -->
-    <div id="lobby-screen" class="screen">
-        <div class="container">
-            <div class="header">
-                <h1>Lobby</h1>
-                <div class="user-info">
-                    <span>Willkommen, <strong id="current-username"></strong>!</span>
-                    <button id="logout-btn" class="btn-logout">Abmelden</button>
-                </div>
-            </div>
-
-            <div class="lobby-actions">
-                <button id="create-game-btn" class="btn-primary">Neues Spiel erstellen</button>
-                <button id="refresh-games-btn" class="btn-secondary">Aktualisieren</button>
-            </div>
-
-            <div class="games-list">
-                <div class="game-list-header">
-                    <h2 style="margin-bottom: 0px;margin-left: 0px;padding: 10px 16px;font-size: 1.1em;">Öffentliche Spiele</h2>
-                    <input type="text" id="game-search-input" placeholder="Spiel suchen..." class="game-search-input">
-                </div>                
-                <div id="public-games">
-                    <p class="empty-message">Keine öffentlichen Spiele verfügbar</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    {% include '_screen_lobby.html' %}
 
     <!-- Create Game Modal -->
-    <div id="create-game-modal" class="modal">
-        <div class="modal-content">
-            <h2>Neues Spiel erstellen</h2>
-            <div class="form-group">
-                <label>Spielname</label>
-                <input type="text" id="game-name-input" placeholder="Mein Spiel" maxlength="30">
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="game-public-checkbox" checked>
-                <label for="game-public-checkbox">Öffentlich sichtbar</label>
-            </div>
-            <div class="form-group">
-                <label>Passwort (optional)</label>
-                <input type="password" id="game-password-input" placeholder="Passwort">
-            </div>
-            <div class="modal-actions">
-                <button id="create-game-confirm" class="btn-primary">Erstellen</button>
-                <button id="create-game-cancel" class="btn-secondary">Abbrechen</button>
-            </div>
-        </div>
-    </div>
+    {% include '_modal_creategame.html' %}
 
     <!-- Join Game Modal -->
-    <div id="join-game-modal" class="modal">
-        <div class="modal-content">
-            <h2>Spiel beitreten</h2>
-            <p id="join-game-name"></p>
-            <div class="form-group" id="join-password-group" style="display: none;">
-                <label>Passwort</label>
-                <input type="password" id="join-password-input" placeholder="Passwort">
-            </div>
-            <div class="form-group checkbox">
-                <input type="checkbox" id="join-as-spectator">
-                <label for="join-as-spectator">Als Zuschauer beitreten (nicht mitspielen)</label>
-            </div>
-            <div class="modal-actions">
-                <button id="join-game-confirm" class="btn-primary">Beitreten</button>
-                <button id="join-game-cancel" class="btn-secondary">Abbrechen</button>
-            </div>
-        </div>
-    </div>
+    {% include '_modal_joingame.html' %}
 
     <!-- Game Room Screen -->
     <div id="game-screen" class="screen">
@@ -310,52 +239,13 @@
     <div id="notification" class="notification"></div>
 
     <!-- Custom Confirm Dialog -->
-    <div id="custom-confirm-overlay" class="custom-confirm-overlay">
-        <div class="custom-confirm-dialog">
-            <div class="custom-confirm-icon">
-                <svg width="60" height="60" viewBox="0 0 60 60">
-                    <circle cx="30" cy="30" r="28" fill="none" stroke="#f39c12" stroke-width="3"/>
-                    <text x="30" y="42" font-size="40" text-anchor="middle" fill="#f39c12">!</text>
-                </svg>
-            </div>
-            <h3 id="custom-confirm-title" class="custom-confirm-title"></h3>
-            <p id="custom-confirm-message" class="custom-confirm-message"></p>
-            <div class="custom-confirm-buttons">
-                <button id="custom-confirm-cancel" class="btn-secondary">Abbrechen</button>
-                <button id="custom-confirm-ok" class="btn-danger">Bestätigen</button>
-            </div>
-        </div>
-    </div>
+    {% include '_custom_confirm_dialog.html' %}
 
     <p id="ping" class="ping"></p>
     <button id="user-settings-button" class="user-settings-button">⚙</button>
 
     <!-- User Settings Modal -->
-    <div id="user-settings-modal" class="modal">
-        <div class="modal-content">
-            <h2>Benutzereinstellungen</h2>
-            <div class="form-group">
-                <!-- DarkMode/LightMode -->
-                <label for="dark-mode-toggle" id="dark-mode-label">Light Mode</label>
-                <input type="checkbox" id="dark-mode-toggle">
-                
-                <div class="volume-container">
-                    <input
-                        id="volume"
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="1"
-                        value="50"
-                    >
-                    <div class="volume-value">Lautstärke: <span id="volumeValue">50</span></div>
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button id="user-settings-close" class="btn-secondary">Schließen</button>
-            </div>
-        </div>
-    </div>
+    {% include '_modal_usersettings.html' %}
     
     <script src="{{ url_for('static', filename='js/custom-confirm.js') }}"></script>
     <script src="{{ url_for('static', filename='js/player-colors.js') }}"></script>

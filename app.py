@@ -304,6 +304,22 @@ def handle_submit_reaction(data):
                     include_history=False
                 ))
 
+@socketio.on('return_to_lobby')
+def handle_return_to_lobby():
+    success,username,game = get_current_data(need_game=True)
+    if not success:
+        return
+    
+    success,message = game.user_return_to_lobby(username)
+
+    if not success:
+        emit('error', {'message': message})
+        return
+    
+    # Informiere alle Spieler
+    game.send_socket_game_update_for_all(channel='game_state_update', include_history=True)
+    broadcastPublicGames()
+
 @socketio.on('create_game')
 def handle_create_game(data):
     success,username,game = get_current_data(need_game=False)
@@ -700,6 +716,11 @@ def handle_pause_game():
     if not game.is_game_started():
         emit('error', {'message': 'Das Spiel wurde noch nicht gestartet'})
         return
+    
+    if game.state == 'choosing_winner':
+        if game.winner_choosen:
+            emit('error', {'message': 'Das Spiel kann nach der Gewinnerauswahl nicht pausiert werden'})
+            return
     
     if game.paused:
         emit('error', {'message': 'Das Spiel ist bereits pausiert'})

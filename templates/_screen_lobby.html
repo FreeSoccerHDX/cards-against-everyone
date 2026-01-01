@@ -1,0 +1,26 @@
+<div id="lobby-screen" class="screen">
+    <div class="container">
+        <div class="header">
+            <h1>Lobby</h1>
+            <div class="user-info">
+                <span>Willkommen, <strong id="current-username"></strong>!</span>
+                <button id="logout-btn" class="btn-logout">Abmelden</button>
+            </div>
+        </div>
+
+        <div class="lobby-actions">
+            <button id="create-game-btn" class="btn-primary">Neues Spiel erstellen</button>
+            <button id="refresh-games-btn" class="btn-secondary">Aktualisieren</button>
+        </div>
+
+        <div class="games-list">
+            <div class="game-list-header">
+                <h2 style="margin-bottom: 0px;margin-left: 0px;padding: 10px 16px;font-size: 1.1em;">Öffentliche Spiele</h2>
+                <input type="text" id="game-search-input" placeholder="Spiel suchen..." class="game-search-input">
+            </div>                
+            <div id="public-games">
+                <p class="empty-message">Keine öffentlichen Spiele verfügbar</p>
+            </div>
+        </div>
+    </div>
+</div>

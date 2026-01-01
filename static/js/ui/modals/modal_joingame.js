@@ -22,10 +22,10 @@ function showJoinGameModal(game) {
     joinGameName.textContent = `Beitritt zu: ${game.name}${gameStarted ? ' (läuft bereits)' : ''}`;
 
     if (game.has_password) {
-        joinPasswordGroup.style.display = 'block';
+        joinPasswordGroup.classList.remove('hidden');
         joinPasswordInput.value = '';
     } else {
-        joinPasswordGroup.style.display = 'none';
+        joinPasswordGroup.classList.add('hidden');
     }
 
     showModal(joinGameModal);
@@ -38,7 +38,7 @@ function hideJoinGameModal() {
     joinAsSpectatorCheckbox.checked = false;
 
     // Passwortfeld zurücksetzen
-    joinPasswordGroup.style.display = 'none';
+    joinPasswordGroup.classList.add('hidden');
     joinPasswordInput.value = '';
 }
 
@@ -53,6 +53,8 @@ joinGameConfirm.addEventListener('click', () => {
         password,
         is_spectator: isSpectator
     });
+
+    selectedGameForJoin = null;
     
     
     window.ui.hideJoinGameModal();

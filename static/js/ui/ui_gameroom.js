@@ -112,8 +112,9 @@ const roundHistoryContainer = document.getElementById('round-history-container')
 
 const backToLobbyBtn = document.getElementById('back-to-lobby-btn');
 backToLobbyBtn.addEventListener('click', () => {
-    window.currentGameData.state = 'lobby'; // setze zustand lokal zurück
-    updateGameRoom(window.currentGameData);
+    //window.currentGameData.state = 'lobby'; // setze zustand lokal zurück
+    //updateGameRoom(window.currentGameData);
+    socket.emit('return_to_lobby');
 });
 
 
@@ -327,6 +328,16 @@ function toggleCardSelection(index, cardEl) {
     } else {
         // Select
         let currentQuestion = window.currentGameData.current_black_card;
+        // if already max selected, remove oldest selection
+        if (selectedCards.length >= currentQuestion.num_blanks) {
+            const oldestIndex = selectedCards.shift();
+            const oldestCardEl = document.querySelector(`.answer-card[data-index="${oldestIndex}"]`);
+            if (oldestCardEl) {
+                oldestCardEl.classList.remove('selected');
+                oldestCardEl.querySelector('.selection-number')?.remove();
+            }
+        }
+
         if (selectedCards.length < currentQuestion.num_blanks) {
             selectedCards.push(index);
             cardEl.classList.add('selected');
@@ -486,6 +497,13 @@ function update_gameEnd(game) {
     let sortedScores = Object.entries(game.scores)
         .sort((a, b) => b[1] - a[1])
         .map(([player, score]) => [player, score]);
+
+    //console.log("Final Scores:", sortedScores, game.scores);
+
+    var totalActivePlayers = game.active_players.length;
+    var resettedToLobbyPlayers = game.resetted_to_lobby ? game.resetted_to_lobby.length : 0;
+
+    backToLobbyBtn.innerText = "Zurück zur Lobby (" + resettedToLobbyPlayers + "/" + totalActivePlayers + ")";
 
     let playerColor = generatePlayerColor(sortedScores[0][0]);
     gameWinner.innerHTML = `<span class="player-badge" style="background-color: ${playerColor.bgColor}; color: ${playerColor.textColor};">${escapeHtml(sortedScores[0][0])}</span>`;
@@ -767,6 +785,12 @@ function update_joinlink(game) {
 // Zeige basierend auf Game-State die richtigen UI-Elemente an
 function updateGameRoom(game) {
     let state = game.state; // 'lobby', 'choosing_cards', 'choosing_winner', 'countdown_next_round', 'game_ended'
+
+    if(game.resetted_to_lobby && game.resetted_to_lobby.includes(window.currentUsername)) {
+        state = 'lobby';
+        window.currentGameData.state = 'lobby';
+    }
+
     if(state === 'lobby') {
         // zeig die lobby und aktualisiere die spielerliste, einstellungen usw.
         updateGameState_Lobby(game);
@@ -809,16 +833,19 @@ function updateLobbyPlayerList(game) {
 
     spectatorsSection.classList.toggle('hidden', spectators.length === 0);
 
+    
+
     allMembers.forEach(player => {
-        
+
         let isCreator = (player == game.owner);
         let isCurrentPlayer = (player == window.currentUsername);
         let isSpectator = spectators.includes(player);
         let connection_status = player_status[player] || 'connected';
         let canKick = (game.owner == window.currentUsername) && (player != window.currentUsername);
         let canForceRole = (game.owner == window.currentUsername) && (player != window.currentUsername);
+        let isResettedToLobby = !isSpectator && (game.resetted_to_lobby.length > 0 && !game.resetted_to_lobby.includes(player));
 
-        let listObject = createListObject(player, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole);
+        let listObject = createListObject(player, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole, isResettedToLobby);
 
         if (isSpectator) {
             spectatorsList.appendChild(listObject);
@@ -828,13 +855,16 @@ function updateLobbyPlayerList(game) {
     });
 }
 
-function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole) {
+function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole, isResettedToLobby) {
     //console.log("createListObject:", name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole);
 
     const item = document.createElement('div');
     item.className = 'player-item' + (isSpectator ? ' spectator-item' : '');
     if(isCreator) {
         item.classList.add('creator');
+    }
+    if(isResettedToLobby) {
+        item.classList.add('not-resetted');
     }
     if(isCurrentPlayer) {
         item.classList.add('current-player');
@@ -876,7 +906,9 @@ function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connect
 
         
     item.innerHTML = `
-        <span>${statusIcon}${isCreator? '<span class="crown">👑</span>' : ''}${isCurrentPlayer ? '(Du)' : ''} ${escapeHtml(name)}</span>
+        <span>
+        ${isResettedToLobby ? '<span class="not-resetted-indicator" title="Dieser Spieler hat das Zurücksetzen in die Lobby noch nicht bestätigt.">⚠️</span>' : ''}
+        ${statusIcon}${isCreator? '<span class="crown">👑</span>' : ''}${isCurrentPlayer ? '(Du)' : ''} ${escapeHtml(name)}</span>
         <span class="player-actions">
             ${toggleButton}
             ${forceRoleButton}

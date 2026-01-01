@@ -33,6 +33,7 @@ class Game:
         self.current_czar_selected_player = None   
         self.choosing_playerName = None
         self.current_reactions = {}  # playerName: { to_player_index: points }
+        self.resetted_to_lobby = []  # list of playerNames who have reset to lobby after game ended
 
         # Game Settings
         self.settings = {    
@@ -89,6 +90,7 @@ class Game:
             "winner_choosen": self.winner_choosen,
             "current_czar_selected_player": self.current_czar_selected_player if self.czar == current_playerName else None,
             "player_reactions": self.current_reactions[current_playerName] if current_playerName in self.current_reactions else {},
+            "resetted_to_lobby": self.resetted_to_lobby,
             "settings": self.settings
         }
     
@@ -237,6 +239,7 @@ class Game:
         self.state = 'choosing_cards'
         self.current_round = 0
         self.scores = {}
+        self.resetted_to_lobby = []
         self.submitted_white_cards = {}
         self.player_mapping = []
         self.history = []
@@ -416,8 +419,34 @@ class Game:
         self.state = 'game_ended'
         self.currentTimerTotalSeconds = -1
         self.currentTimerSeconds = -1
+        self.czar = None
+        self.czarIndex = 0
+        self.current_czar_selected_player = None   
+        self.choosing_playerName = None
+        self.playerCards = {}
+        self.current_black_card = {}
+        self.winning_white_cards = {}
+        self.submitted_white_cards = {}
+        self.player_mapping = []
+        self.resetted_to_lobby = []
+
+    def user_return_to_lobby(self, playerName):
+        if self.state != 'game_ended':
+            return False, "Das Spiel ist noch nicht beendet"
+        if playerName not in self.active_players and playerName not in self.spectators:
+            return False, "Du bist kein Spieler oder Zuschauer in diesem Spiel"
+        if playerName in self.resetted_to_lobby:
+            return False, "Du bist bereits zur Lobby zurückgekehrt"
+
+        self.resetted_to_lobby.append(playerName)
+
+        if len(self.resetted_to_lobby) >= len(self.active_players) + len(self.spectators):
+            self.reset_to_lobby()
+
+        return True, "Zurück zur Lobby"
 
     def reset_to_lobby(self):
+        self.resetted_to_lobby = []
         self.state = 'lobby'
         self.current_round = 0
         self.playerCards = {}

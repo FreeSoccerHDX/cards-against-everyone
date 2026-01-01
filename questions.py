@@ -1289,7 +1289,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "'Mama, können wir _____ haben?'<br>'Nein, wir haben _____ zu Hause.'                                    Zu Hause: _____",
+        "card_text": "'Mama, können wir _____ haben?'<br>'Nein, wir haben _____ zu Hause.'",
         "num_blanks": 2
     },
     {
