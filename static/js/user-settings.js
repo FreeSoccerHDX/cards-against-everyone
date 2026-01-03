@@ -6,7 +6,21 @@ const darkModeToggle = document.getElementById('dark-mode-toggle');
 const sliderVolume = document.getElementById("volume");
 const outputVolumeValue = document.getElementById("volumeValue");
 
+const soundGameStart = new Audio('/static/sounds/game_start_sfx.wav');
+const soundRoundStart = new Audio('/static/sounds/round_start_sfx.wav');
+const soundRoundEndTicking = new Audio('/static/sounds/round_end_tick.mp3');
+const soundGameFinished = new Audio('/static/sounds/game_finished.mp3');
+
+
 var currentVolume = localStorage.getItem("volume") || 50;
+
+outputVolumeValue.textContent = currentVolume;
+sliderVolume.value = currentVolume;
+
+soundGameStart.volume = currentVolume / 100;
+soundRoundStart.volume = currentVolume / 100;
+soundRoundEndTicking.volume = currentVolume / 100;
+soundGameFinished.volume = currentVolume / 100;
 
 sliderVolume.addEventListener("input", (event) => {
     const value = parseInt(event.target.value, 10);
@@ -14,7 +28,28 @@ sliderVolume.addEventListener("input", (event) => {
 
     currentVolume = value;
     localStorage.setItem("volume", currentVolume);
+    soundGameStart.volume = currentVolume / 100;
+    soundRoundStart.volume = currentVolume / 100;
+    soundRoundEndTicking.volume = currentVolume / 100;
+    soundGameFinished.volume = currentVolume / 100;
 });
+
+window.socket.on('sound_event', (name) => {
+    if (name === 'game_start') {
+        soundGameStart.currentTime = 0;
+        soundGameStart.play();
+    } else if (name === 'round_start') {
+        soundRoundStart.currentTime = 0;
+        soundRoundStart.play();
+    } else if (name === 'round_end_tick') {
+        soundRoundEndTicking.currentTime = 0;
+        soundRoundEndTicking.play();
+    } else if (name === 'game_finished') {
+        soundGameFinished.currentTime = 0;
+        soundGameFinished.play();
+    }
+});
+
 
 userSettingsButton.addEventListener('click', () => {
     window.ui.showModal(userSettingsModal);
@@ -73,3 +108,4 @@ function updateLabel() {
 }
 toggle.addEventListener('change', updateLabel);
 updateLabel();
+

@@ -64,6 +64,10 @@ class Game:
                 )
             , room=self.global_player_data[player]['sid'])
 
+    def broadcast_event_to_game(self, channel, data):
+        for player in self.active_players + self.spectators:
+            self.socketio.emit(channel, data, room=self.global_player_data[player]['sid'])
+
 
     def get_socket_game_data(self, include_player_cards=False, current_playerName:str=None, include_history=False):
         return {
@@ -236,6 +240,8 @@ class Game:
         if len(self.active_players) < 3:
             return False
 
+        self.broadcast_event_to_game("sound_event", "game_start")
+
         self.state = 'choosing_cards'
         self.current_round = 0
         self.scores = {}
@@ -364,6 +370,7 @@ class Game:
 
         if not self.winner_choosen:
             self.winner_choosen = True
+            self.broadcast_event_to_game("sound_event", "round_end_tick")
             self.currentTimerTotalSeconds = 10
             self.currentTimerSeconds = 10
 
@@ -402,6 +409,9 @@ class Game:
             self.end_game()
             return True,"Spiel beendet: Nicht genügend Spieler"
 
+
+        self.broadcast_event_to_game("sound_event", "round_start")
+
         self.current_round += 1
         self.submitted_white_cards = {}
         self.winning_white_cards = {}
@@ -416,6 +426,7 @@ class Game:
         return True,"Neue Runde gestartet"
 
     def end_game(self):
+        self.broadcast_event_to_game("sound_event", "game_finished")
         self.state = 'game_ended'
         self.currentTimerTotalSeconds = -1
         self.currentTimerSeconds = -1

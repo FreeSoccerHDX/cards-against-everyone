@@ -479,6 +479,9 @@ function updateGameState_CountdownNextRound(game) {
     update_resultPhase(game);
 
     votingPhase.classList.add('hidden');
+
+    soundRoundEndTicking.pause();
+    soundRoundEndTicking.currentTime = 0;
 }
 
 function updateGameState_GameEnded(game) {
