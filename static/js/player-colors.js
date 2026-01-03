@@ -1,6 +1,19 @@
 // Player Color System
 const playerColors = {};
 
+const playerNameColors = [
+  { background: "#195f9cff", text: "#FFFFFF" }, // Blau
+  { background: "#992525ff", text: "#FFFFFF" }, // Rot
+  { background: "#388E3C", text: "#FFFFFF" }, // Grün
+  { background: "#FBC02D", text: "#000000" }, // Gelb
+  { background: "#7B1FA2", text: "#FFFFFF" }, // Lila
+  { background: "#00796B", text: "#FFFFFF" }, // Türkis
+  { background: "#a35a11ff", text: "#000000" }, // Orange
+  { background: "#455A64", text: "#FFFFFF" }, // Blaugrau
+  { background: "#e74485ff", text: "#FFFFFF" }, // Pink
+  { background: "#8c9102ff", text: "#000000" }  // Oliv
+];
+
 function hashCode(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -13,6 +26,12 @@ function hashCode(str) {
 
 function generatePlayerColor(username) {
     if (playerColors[username]) {
+        return playerColors[username];
+    }
+    if(true) {
+        const index = hashCode(username) % playerNameColors.length;
+        const colors = playerNameColors[index];
+        playerColors[username] = { bgColor: colors.background, textColor: colors.text };
         return playerColors[username];
     }
     
