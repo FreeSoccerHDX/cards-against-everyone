@@ -747,7 +747,7 @@ def handle_submit_discard_cards(data):
     emit('cards_discarded', {
         'username': username,
         'game': game.get_socket_game_data(current_playerName=username, include_history=True)
-    }, room=game.game_id)
+    })
 
 @socketio.on('resume_game')
 def handle_resume_game():

@@ -470,6 +470,7 @@ class Game:
         self.state = 'choosing_cards'
         self.currentTimerTotalSeconds = self.settings["timeToChooseWhiteCards"]
         self.currentTimerSeconds = self.currentTimerTotalSeconds
+        self.send_socket_game_update_for_all(include_history=True)
         return True,"Neue Runde gestartet"
 
     def end_game(self):

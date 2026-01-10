@@ -834,6 +834,7 @@ function update_scores(game) {
 
         item.innerHTML = `
             ${statusIcon}
+            ${window.currentUsername === player ? '<span class="current-player-indicator" title="Du">(Du)</span>' : ''}
             <span class="score-name">${escapeHtml(player)}</span>
             <span class="score-value">${score}</span>
         `;

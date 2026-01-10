@@ -1129,7 +1129,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Die NSA möchte mit mir über eine E-Mail sprechen, die ich gesendet habe und die folgende Schlüsselbegriffe enthält: _____ _____ _____",
+        "card_text": "Die NSA möchte mit mir über eine E-Mail sprechen, die ich gesendet habe und die folgende Schlüsselbegriffe enthält: <br>_____ <br>_____ <br>_____",
         "num_blanks": 3
     },
     {
@@ -1653,7 +1653,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Kennedy: 'Ich bin ein Berliner!'                                     Obama: 'Yes we can!'                            Trump: _____!",
+        "card_text": "Kennedy: 'Ich bin ein Berliner!'<br>Obama: 'Yes we can!'<br>Trump: _____!",
         "num_blanks": 1
     },
     {
@@ -1665,11 +1665,11 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Kunst ist nicht nur ein Gemälde in einem langweiligen Museum. Kunst ist lebendig.                   Kunst ist _____!",
+        "card_text": "Kunst ist nicht nur ein Gemälde in einem langweiligen Museum. Kunst ist lebendig.<br>Kunst ist _____!",
         "num_blanks": 1
     },
     {
-        "card_text": "Ich habe eine strenge Verfahrensweise: 1. Date: Dinner,2. Date: Kuss,3. Date: _____.",
+        "card_text": "Ich habe eine strenge Verfahrensweise: <br>1. Date: Dinner,<br>2. Date: Kuss,<br>3. Date: _____.",
         "num_blanks": 1
     },
     {
@@ -4905,7 +4905,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 2
     },
     {
-        "card_text": "3 Dinge die Sie nicht tun sollten, wenn Sie das erste Mal im Puff sind:                        1._____                    2._____                   3._____",
+        "card_text": "3 Dinge die Sie nicht tun sollten, wenn Sie das erste Mal im Puff sind: <br>1._____ <br>2._____ <br>3._____",
         "num_blanks": 3
     },
     {
@@ -5277,7 +5277,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Kokain ist mir mittlerweile zu low.                                          _____ ist besser!",
+        "card_text": "Kokain ist mir mittlerweile zu low.<br>_____ ist besser!",
         "num_blanks": 1
     },
     {
@@ -5333,7 +5333,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Ohne _____?                                     Ohne mich!",
+        "card_text": "Ohne _____?<br>Ohne mich!",
         "num_blanks": 1
     },
     {
@@ -5525,7 +5525,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Die 3 meistgesuchten Pornokategorien auf PornHub sind                        1. _____                              2. _____                           3. _____",
+        "card_text": "Die 3 meistgesuchten Pornokategorien auf PornHub sind <br>1. _____ <br>2. _____ <br>3. _____",
         "num_blanks": 3
     },
     {

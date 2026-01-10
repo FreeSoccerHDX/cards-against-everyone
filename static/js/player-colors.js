@@ -29,7 +29,7 @@ function generatePlayerColor(username) {
         return playerColors[username];
     }
     if(true) {
-        const index = hashCode(username) % playerNameColors.length;
+        const index = Object.keys(playerColors).length % playerNameColors.length;
         const colors = playerNameColors[index];
         playerColors[username] = { bgColor: colors.background, textColor: colors.text };
         return playerColors[username];

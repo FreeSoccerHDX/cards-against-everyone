@@ -335,6 +335,12 @@ button {
     gap: 15px;
 }
 
+.current-player-indicator {
+    font-size: 14px;
+    font-weight: bold;
+    font-style: italic;
+}
+
 .lobby-actions {
     margin-bottom: 30px;
     flex-wrap: wrap;
