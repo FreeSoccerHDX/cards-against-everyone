@@ -731,6 +731,24 @@ def handle_pause_game():
     # Informiere alle Spieler mit aktuellem Timer
     socketio.emit('game_paused', {'time_left': game.currentTimerSeconds}, room=game.game_id)
 
+@socketio.on('submit_discard_cards')
+def handle_submit_discard_cards(data):
+    success,username,game = get_current_data(need_game=True)
+    if not success:
+        return
+    
+    card_ids = data.get('card_ids', [])
+    
+    success,message = game.submit_discard_cards(username, card_ids)
+    if not success:
+        emit('error', {'message': message})
+        return
+    
+    emit('cards_discarded', {
+        'username': username,
+        'game': game.get_socket_game_data(current_playerName=username, include_history=True)
+    }, room=game.game_id)
+
 @socketio.on('resume_game')
 def handle_resume_game():
     success,username,game = get_current_data(need_game=True)

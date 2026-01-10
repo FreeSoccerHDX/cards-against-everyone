@@ -25,7 +25,7 @@ class Game:
         self.scores = {}           # playerName: score
         self.czarIndex = 0      # index of current czar in active_players -> random set-value at start
         self.czar = None           # playerName of current czar
-        self.state = 'lobby'  # 'lobby', 'choosing_cards', 'choosing_winner', 'countdown_next_round', 'game_ended'
+        self.state = 'lobby'  # 'lobby', 'choosing_cards', 'choosing_winner', 'countdown_next_round', 'game_ended', 'special_discard_round'
         self.currentTimerTotalSeconds = 0  # total seconds for current timer
         self.currentTimerSeconds = 0      # remaining seconds for current timer
         self.paused = False # whether the game is paused (owner can pause during choosing phases)
@@ -47,7 +47,11 @@ class Game:
             "timeToChooseWhiteCards": 60,
             "timeToChooseWinner": 60,
             "timeAfterWinnerChosen": 15,
-            "maxPlayers": 10
+            "maxPlayers": 10,
+            "discardRoundActive": True,
+            "discardRoundInterval": 10,
+            "discardMaxCards": 3,
+            "discardTime": 30
         }
 
     def updateSettings(self, newSettings):
@@ -129,7 +133,12 @@ class Game:
             self.currentTimerSeconds -= 1
         
         if self.currentTimerSeconds == 0:
-            if self.state == 'choosing_cards':
+            if self.state == 'special_discard_round':
+                # end special discard round
+                success,error = self.next_round()
+                if not success:
+                    print("Error moving to next round:", error)
+            elif self.state == 'choosing_cards':
                 self.autosubmit_white_cards(ignoreConnection=True)
             elif self.state == 'choosing_winner':
                 if self.winner_choosen:
@@ -145,9 +154,16 @@ class Game:
                         self.choose_winner(chosen_winner, choosing_playerName=None)
 
             elif self.state == 'countdown_next_round':
-                success,error = self.next_round()
-                if not success:
-                    print("Error moving to next round:", error)
+                if self.settings["discardRoundActive"] and ((self.current_round+1) % self.settings["discardRoundInterval"] == 0) and self.current_round != 0:
+                    # start special discard round
+                    self.state = 'special_discard_round'
+                    self.fill_player_hands()
+                    self.currentTimerTotalSeconds = self.settings["discardTime"]
+                    self.currentTimerSeconds = self.currentTimerTotalSeconds
+                else:
+                    success,error = self.next_round()
+                    if not success:
+                        print("Error moving to next round:", error)
             self.send_socket_game_update_for_all(include_history=True)
         return True,"Timer aktualisiert"
 
@@ -157,7 +173,7 @@ class Game:
     def add_player(self, playerName, isSpectator):
         if not playerName:
             return False, "Ungültiger Spielername"
-        if len(self.active_players) >= self.settings["maxPlayers"] and not isSpectator:
+        if len(self.active_players) >= self.settings["maxPlayers"] and not isSpectator and not playerName in self.active_players:
             return False, "Maximale Spieleranzahl erreicht"
         if playerName in self.active_players and self.is_status_connected(playerName):
             return False, "Spieler bereits im Spiel"
@@ -187,6 +203,37 @@ class Game:
             return True
             
         return False
+
+    def submit_discard_cards(self, playerName, white_cards_indicies):
+        if self.state != 'special_discard_round':
+            return False,"Falsche Spielphase"
+        if playerName in self.spectators:
+            return False,"Zuschauer können nicht mitspielen"
+        if playerName not in self.active_players:
+            return False,"Du bist kein aktiver Spieler"
+        if playerName in self.submitted_white_cards:
+            return False,"Du hast bereits abgegeben"
+        if len(white_cards_indicies) > self.settings["discardMaxCards"]:
+            return False,"Zu viele Karten zum Abwerfen ausgewählt"
+
+        playerCards = self.playerCards.get(playerName, [])
+        submitting_cards = []
+        for card_indicies in white_cards_indicies:
+            if card_indicies > len(playerCards)-1 or card_indicies < 0:
+                return False,"Karte(n) nicht in deinem Blatt"
+            submitting_cards.append(playerCards[card_indicies])
+
+        self.submitted_white_cards[playerName] = submitting_cards
+
+        # remove white cards from player's hand
+        for submit_card in submitting_cards:
+            playerCards.remove(submit_card)
+
+        # if everyone has submitted, move to next round
+        if len(self.submitted_white_cards) >= len(self.active_players):
+            self.next_round()
+
+        return True,"Karten abgeworfen"
 
     def remove_player(self, playerName):
         isSpectator = playerName in self.spectators
@@ -390,7 +437,7 @@ class Game:
 
 
     def next_round(self):
-        if self.state != 'countdown_next_round':
+        if self.state != 'countdown_next_round' and self.state != 'special_discard_round':
             return False,"Falsche Spielphase"
         
         # check if max rounds reached

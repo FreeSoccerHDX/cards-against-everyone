@@ -65,57 +65,7 @@
                     </div>
 
                     <!-- Rechte Seite: Einstellungen -->
-                    <div class="defaultpanel">
-                        <h2>Einstellungen</h2>
-                        <div class="settings-form">
-                            <div class="form-group">
-                                <label>Spielname</label>
-                                <input type="text" id="settings-name" class="settings-input" maxlength="30">
-                            </div>
-                            <div class="form-group checkbox">
-                                <input type="checkbox" id="settings-public" class="settings-input">
-                                <label for="settings-public">Öffentlich sichtbar in Lobby</label>
-                            </div>
-                            <div class="form-group checkbox">
-                                <input type="checkbox" id="settings-public-during-game" class="settings-input">
-                                <label for="settings-public-during-game">Öffentlich sichtbar während des Spiels</label>
-                            </div>
-                            <div class="form-group">
-                                <label>Passwort</label>
-                                <input type="password" id="settings-password" class="settings-input" placeholder="Optional">
-                            </div>
-                            <div class="form-group">
-                                <label>Maximale Spieler</label>
-                                <input type="number" id="settings-max-players" class="settings-input" min="3" max="42" value="10">
-                            </div>
-                            <div class="form-group">
-                                <label>Maximale Karten pro Spieler</label>
-                                <input type="number" id="settings-max-cards" class="settings-input" min="5" max="1500" value="7">
-                            </div>
-                            <div class="form-group">
-                                <label>Punkte zum Gewinnen</label>
-                                <input type="number" id="settings-win-score" class="settings-input" min="3" max="2000" value="10">
-                            </div>
-                            <div class="form-group">
-                                <label>Runden-Limit</label>
-                                <input type="number" id="settings-max-rounds" class="settings-input" min="1" max="10000" value="50">
-                            </div>
-                            <div class="form-group">
-                                <label>Zeit für Antworten (Sekunden)</label>
-                                <input type="number" id="settings-answer-time" class="settings-input" min="30" max="30000" value="60">
-                            </div>
-                            <div class="form-group">
-                                <label>Zeit für Card Czar Auswahl (Sekunden)</label>
-                                <input type="number" id="settings-czar-time" class="settings-input" min="15" max="12000" value="30">
-                            </div>
-                            <div class="form-group">
-                                <label>Zeit zwischen Runden (Sekunden)</label>
-                                <input type="number" id="settings-round-delay" class="settings-input" min="3" max="1500" value="5">
-                            </div>
-                            <p id="creator-info" class="info-text hidden">Nur der Ersteller kann Einstellungen ändern</p>
-                        </div>
-
-                    </div>
+                    {% include '_game_settings.html' %}
 
 
                 </div>
@@ -147,7 +97,7 @@
                         </div>
 
                         <!-- Frage-Karte -->
-                        <div class="question-card">
+                        <div class="question-card" id="question-card-container">
                             <div class="card-label">FRAGE</div>
                             <div id="question-text" class="question-text"></div>
                             <div id="timer-display" class="timer-display">
@@ -164,6 +114,15 @@
                         <!-- Punkte -->
                         <div id="win-score-label" class="win-score-label"></div>
                         <div id="scores-panel" class="scores-panel defaultpanel"></div>
+
+                        <!-- Special: Karten-Abwerfrunde -->
+                        <div id="discard-round-phase" class="discard-round-phase hidden">
+                            <h1>♻️ WEGWERFRUNDE ♻️</h1>
+                            <p class="discard-round-end" style="text-align: center;">Nächste Runde in <span id="countdown-timer-discard">15</span> Sekunden...</p>
+                            <div class="phase-title" id="cards-needed-discard">Wähle bis zu 3 Karte(n)</div>
+                            <div id="player-hand-discard" class="card-hand"></div>
+                            <button id="submit-discard-btn" class="btn-primary btn-large" disabled>Abwerfen (0/3)</button>
+                        </div>
 
                         <!-- Antwort-Phase: Spieler wählt Karten -->
                         <div id="answer-phase" class="hidden">

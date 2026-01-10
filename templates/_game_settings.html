@@ -1,0 +1,76 @@
+<div class="defaultpanel settings">
+    <h2>Einstellungen</h2>
+    <div class="settings-form">
+        <p id="creator-info" class="info-text hidden">Nur der Ersteller kann Einstellungen ändern</p>
+        <div class="form-group">
+            <label>Spielname</label>
+            <input type="text" id="settings-name" class="settings-input" maxlength="30">
+        </div>
+        <div class="form-group checkbox">
+            <input type="checkbox" id="settings-public" class="settings-input">
+            <label for="settings-public">Öffentlich sichtbar in Lobby</label>
+        </div>
+        <div class="form-group checkbox">
+            <input type="checkbox" id="settings-public-during-game" class="settings-input">
+            <label for="settings-public-during-game">Öffentlich sichtbar während des Spiels</label>
+        </div>
+        <div class="form-group">
+            <label>Passwort</label>
+            <input type="password" id="settings-password" class="settings-input" placeholder="Optional">
+        </div>
+        <div class="form-group">
+            <label>Maximale Spieler</label>
+            <input type="number" id="settings-max-players" class="settings-input" min="3" max="42" value="10">
+        </div>
+        <div class="form-group">
+            <label>Maximale Karten pro Spieler</label>
+            <input type="number" id="settings-max-cards" class="settings-input" min="5" max="1500" value="7">
+        </div>
+        <div class="form-group">
+            <label>Punkte zum Gewinnen</label>
+            <input type="number" id="settings-win-score" class="settings-input" min="3" max="2000" value="10">
+        </div>
+        <div class="form-group">
+            <label>Runden-Limit</label>
+            <input type="number" id="settings-max-rounds" class="settings-input" min="1" max="10000" value="50">
+        </div>
+        <h2>Allgemeine Zeiten (in Sekunden)</h2>
+        <div class="form-group-box">
+            <div class="form-group">
+                <label>Zeit für Antworten</label>
+                <input type="number" id="settings-answer-time" class="settings-input" min="30" max="30000" value="60">
+            </div>
+            <div class="form-group">
+                <label>Zeit für Card Czar Auswahl</label>
+                <input type="number" id="settings-czar-time" class="settings-input" min="15" max="12000" value="30">
+            </div>
+            <div class="form-group">
+                <label>Zeit zwischen Runden</label>
+                <input type="number" id="settings-round-delay" class="settings-input" min="3" max="1500" value="5">
+            </div>
+        </div>
+        <h2>Wegwerfrunde</h2>
+        <div class="form-group-box">
+            <!-- Checkbox für "Wegwerfrunde Aktiv" -->
+            <div class="form-group checkbox">
+                <input type="checkbox" id="settings-discard-round-active" class="settings-input" checked>
+                <label for="settings-discard-round-active">Wegwerfrunde aktiv</label>
+            </div>
+            <!-- Number-Input für alle wieviel Runden Karten wegwerfen -->
+            <div class="form-group">
+                <label for="settings-discard-round-interval">Alle wieviel Runden Karten wegwerfen</label>
+                <input type="number" id="settings-discard-round-interval" class="settings-input" min="1" max="100" value="10">
+            </div>
+            <!-- Number-Input wieviele Karten maximal ausgewählt werden können -->
+            <div class="form-group">
+                <label for="settings-discard-max-cards">Maximal auswählbare Karten zum Wegwerfen</label>
+                <input type="number" id="settings-discard-max-cards" class="settings-input" min="1" max="20" value="3">
+            </div>
+            <!-- Number-Input wie lange man Zeit für die Auswahl hat -->
+            <div class="form-group">
+                <label for="settings-discard-time">Zeit für die Auswahl (Sekunden)</label>
+                <input type="number" id="settings-discard-time" class="settings-input" min="10" max="600" value="30">
+            </div>
+        </div>
+    </div>
+</div>

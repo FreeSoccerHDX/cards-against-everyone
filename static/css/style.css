@@ -251,6 +251,16 @@ button {
     margin-top: 20px;
 }
 
+
+#submit-discard-btn {
+    font-weight: bold;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: block;
+    margin: 20px auto 0;
+}
+
 #submit-answers-btn {
     font-weight: bold;
     transition: all 0.3s ease;
@@ -422,6 +432,15 @@ button {
     margin-bottom: 20px;
 }
 
+.form-group-box {
+    padding: 20px;
+    padding-left: 20px;
+    padding-left: 30px;
+    border: 3px solid #636a65;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
 .form-group label,
 .game-link label {
     display: block;
@@ -472,6 +491,10 @@ button {
     background: var(--color-defaultpanel-bg);
     padding: 10px;
     border-radius: 8px;
+}
+
+.defaultpanel.settings {
+    max-width: 600px;
 }
 
 
@@ -848,7 +871,7 @@ button {
     margin-bottom: 25px;
 }
 
-.answer-card {
+.discard-card, .answer-card {
     background: var(--color-answercard-bg);
     color: var(--color-answercard);
     border: 3px solid #e0e0e0;
@@ -865,19 +888,19 @@ button {
     position: relative;
 }
 
-.answer-card:hover {
+.discard-card:hover, .answer-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     border-color: #667eea;
 }
 
-.answer-card.selected {
+.discard-card.selected, .answer-card.selected {
     border-color: #667eea;
     background: var(--color-answercard-selected-bg);
     transform: translateY(-5px);
 }
 
-.answer-card .selection-number {
+.discard-card .selection-number,.answer-card .selection-number {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -1019,13 +1042,13 @@ button {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.next-round-countdown {
+.discard-round-end, .next-round-countdown {
     font-size: 20px;
     color: var(--color-text-h2);
     margin-top: 15px;
 }
 
-.next-round-countdown span {
+.discard-round-end span, .next-round-countdown span {
     color: #667eea;
     font-weight: bold;
     font-size: 24px;
@@ -1099,6 +1122,9 @@ button {
 
 /* Responsive */
 @media (max-width: 768px) {
+    .defaultpanel.settings {
+        max-width: 768px;
+    }
 
     .game-list-header {
         flex-direction: column;
@@ -1143,11 +1169,12 @@ button {
         grid-template-columns: 1fr;
     }
     
-    .answer-card {
+    .discard-card, .answer-card {
         min-height: 120px;
         font-size: 14px;
         padding: 15px;
     }
+
     
     .game-end-banner h1 {
         font-size: 28px;

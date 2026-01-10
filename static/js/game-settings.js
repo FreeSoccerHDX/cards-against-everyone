@@ -16,6 +16,12 @@ const settingsRoundDelay = document.getElementById('settings-round-delay');
 const creatorInfo = document.getElementById('creator-info');
 const startGameBtn = document.getElementById('start-game-btn');
 
+// Wegwerfrunde
+const settingsDiscardRoundActive = document.getElementById('settings-discard-round-active');
+const settingsDiscardRoundInterval = document.getElementById('settings-discard-round-interval');
+const settingsDiscardMaxCards = document.getElementById('settings-discard-max-cards');
+const settingsDiscardTime = document.getElementById('settings-discard-time');
+
 
 const settingsInputs = document.querySelectorAll('.settings-input');
 
@@ -38,6 +44,10 @@ function autoSaveSettings() {
             timeToChooseWhiteCards: parseInt(settingsAnswerTime.value),
             timeToChooseWinner: parseInt(settingsCzarTime.value),
             timeAfterWinnerChosen: parseInt(settingsRoundDelay.value),
+            discardRoundActive: settingsDiscardRoundActive.checked,
+            discardRoundInterval: parseInt(settingsDiscardRoundInterval.value),
+            discardMaxCards: parseInt(settingsDiscardMaxCards.value),
+            discardTime: parseInt(settingsDiscardTime.value)
             
         };
         window.socket.emit('update_settings', settingsData);
@@ -58,6 +68,10 @@ function initializeSettingsListeners() {
     settingsRoundDelay.addEventListener('input', autoSaveSettings);
     settingsMaxPlayers.addEventListener('input', autoSaveSettings);
     settingsPublicDuringGame.addEventListener('change', autoSaveSettings);
+    settingsDiscardRoundActive.addEventListener('change', autoSaveSettings);
+    settingsDiscardRoundInterval.addEventListener('input', autoSaveSettings);
+    settingsDiscardMaxCards.addEventListener('input', autoSaveSettings);
+    settingsDiscardTime.addEventListener('input', autoSaveSettings);
     
     // Start Game Button
     startGameBtn.addEventListener('click', () => {
@@ -80,6 +94,10 @@ function loadGameSettings(game) {
     settingsRoundDelay.value = game.settings.timeAfterWinnerChosen || 15;
     settingsMaxPlayers.value = game.settings.maxPlayers || 10;
     settingsPublicDuringGame.checked = game.settings.publicVisibleDuringGame || false;
+    settingsDiscardRoundActive.checked = game.settings.discardRoundActive || false;
+    settingsDiscardRoundInterval.value = game.settings.discardRoundInterval || 10;
+    settingsDiscardMaxCards.value = game.settings.discardMaxCards || 3;
+    settingsDiscardTime.value = game.settings.discardTime || 30;
 }
 
 // Funktion um Settings-Inputs basierend auf Creator-Status zu aktivieren/deaktivieren

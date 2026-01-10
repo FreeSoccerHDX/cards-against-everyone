@@ -46,6 +46,7 @@ const gameControls = document.getElementById('game-controls');
 const pauseGameBtn = document.getElementById('pause-game-btn');
 const resumeGameBtn = document.getElementById('resume-game-btn');
 const resetLobbyBtn = document.getElementById('reset-lobby-btn');
+const questionCardsContainer = document.getElementById('question-card-container');
 
 pauseGameBtn.addEventListener('click', () => {
     socket.emit('pause_game');
@@ -99,6 +100,29 @@ const roundWinner = document.getElementById('round-winner');
 const resultQuestion = document.getElementById('result-question');
 const resultAnswers = document.getElementById('result-answers');
 const countdownTimer = document.getElementById('countdown-timer');
+
+// ########################################
+//
+//             Game Play Special - Discard Round Elements
+//
+// ########################################
+const discardRoundPhase = document.getElementById('discard-round-phase');
+const countdownTimerDiscard = document.getElementById('countdown-timer-discard');
+const cardsNeededDiscard = document.getElementById('cards-needed-discard');
+const playerHandDiscard = document.getElementById('player-hand-discard');
+const submitDiscardBtn = document.getElementById('submit-discard-btn');
+var selectedDiscardCardsIDs = [];
+submitDiscardBtn.addEventListener('click', () => {
+    socket.emit('submit_discard_cards', { card_ids: selectedDiscardCardsIDs });
+    
+});
+socket.on("cards_discarded", (data) => {
+    window.currentGameData = data.game;
+    selectedDiscardCardsIDs = [];
+    updateGameRoom(data.game);
+});
+
+
 
 // ########################################
 //
@@ -237,6 +261,10 @@ socket.on('game_created', (game) => {
 
 function updateTimerDisplay(timeLeft, maxTime) {
     
+    if(window.currentGameData.state == 'special_discard_round') {
+        countdownTimerDiscard.innerHTML = timeLeft;
+    }
+
     if(window.currentGameData.state == "choosing_winner") {
         if(window.currentGameData.winner_choosen) {
             let maxTimeD = 1.0 * maxTime;
@@ -390,13 +418,22 @@ function displayState(game) {
     gamePlayContent.classList.add('hidden');
     gameEndContent.classList.add('hidden');
     czarWaitingPhase.classList.add('hidden');
+    discardRoundPhase.classList.add('hidden');
+    resultPhase.classList.add('hidden');
 
-    if(gameState === 'lobby') {
+    if(gameState === 'special_discard_round') {
+        discardRoundPhase.classList.remove('hidden');
+        gamePlayContent.classList.remove('hidden');
+        czarInfo.classList.add('hidden');
+        questionCardsContainer.classList.add('hidden');
+    } else if(gameState === 'lobby') {
         // show lobby elements: players, spectators, settings, for creator: start button
         gameLobbyContent.classList.remove('hidden');
     } else if(gameState === 'choosing_cards' || gameState === 'choosing_winner' || gameState === 'countdown_next_round') {
         // show gameplay elements: question, timer, czar, player status, hand (if not spectator)
         gamePlayContent.classList.remove('hidden');
+        questionCardsContainer.classList.remove('hidden');
+        czarInfo.classList.remove('hidden');
         // only czar and spectator
         if(gameState === 'choosing_cards' && (game.czar == window.currentUsername || game.spectators.includes(window.currentUsername))) {
             czarWaitingPhase.classList.remove('hidden');
@@ -482,6 +519,78 @@ function updateGameState_CountdownNextRound(game) {
 
     soundRoundEndTicking.pause();
     soundRoundEndTicking.currentTime = 0;
+}
+
+function updateGameState_SpecialDiscardRound(game) {
+    displayState(game);
+    update_ownerControls(game);
+    update_titleLobby(game);
+    update_scores(game);
+    update_discardPlayerHands(game);
+    update_timer(game);
+}
+
+function update_discardPlayerHands(game) {
+    // only update hands if hands are presented in new game data and use local currentHand to avoid overwriting selected cards
+    if(game.currentPlayerCards) {
+        currentHand = game.currentPlayerCards;
+    }
+
+    playerHandDiscard.innerHTML = '';
+
+    currentHand.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'discard-card';
+        cardEl.textContent = card;
+        cardEl.dataset.index = index;
+        
+        cardEl.addEventListener('click', () => toggleDiscardCardSelection(index, cardEl));
+        
+        playerHandDiscard.appendChild(cardEl);
+    });
+
+    cardsNeededDiscard.textContent =  window.currentUsername in game.submitted_white_cards ? "Warte auf die anderen Spieler..." : "Wähle bis zu 3 Karte(n) zum Abwerfen aus.";
+
+    const requiredDiscards = window.currentGameData.settings["discardMaxCards"] || 0;
+    submitDiscardBtn.disabled = Object.keys(game.submitted_white_cards).includes(window.currentUsername) || selectedDiscardCardsIDs.length !== requiredDiscards;
+    submitDiscardBtn.textContent = `Abwerfen (${selectedDiscardCardsIDs.length}/${requiredDiscards})`;
+
+    playerHandDiscard.classList.toggle('hidden', window.currentUsername in game.submitted_white_cards);
+    submitDiscardBtn.classList.toggle('hidden', window.currentUsername in game.submitted_white_cards);
+    
+    //updateSelectionUI();
+
+}
+
+function toggleDiscardCardSelection(index, cardEl) {
+    // Blockiere während Pause
+    if (window.currentGameData.paused) { 
+        return;
+    }
+    const selectedIndex = selectedDiscardCardsIDs.indexOf(index);
+    if (selectedIndex > -1) {
+        // Deselect
+        selectedDiscardCardsIDs.splice(selectedIndex, 1);
+        cardEl.classList.remove('selected');
+    } else {
+        // Select
+        selectedDiscardCardsIDs.push(index);
+        cardEl.classList.add('selected');
+    }
+
+    if(selectedDiscardCardsIDs.length > (window.currentGameData.settings["discardMaxCards"] || 0)) {
+        // remove oldest selection
+        const oldestIndex = selectedDiscardCardsIDs.shift();
+        const oldestCardEl = document.querySelector(`.discard-card[data-index="${oldestIndex}"]`);
+        if (oldestCardEl) {
+            oldestCardEl.classList.remove('selected');
+        }
+    }
+
+    // Update submit button state
+    const requiredDiscards = window.currentGameData.settings["discardMaxCards"] || 0;
+    submitDiscardBtn.disabled = Object.keys(window.currentGameData.submitted_white_cards).includes(window.currentUsername) || selectedDiscardCardsIDs.length !== requiredDiscards;
+    submitDiscardBtn.textContent = `Abwerfen (${selectedDiscardCardsIDs.length}/${requiredDiscards})`;
 }
 
 function updateGameState_GameEnded(game) {
@@ -809,7 +918,10 @@ function updateGameRoom(game) {
     } else if(state === "game_ended") {
         // zeig jedem den endstand und den gewinner des spiels sowie history mit button für neues spiel
         updateGameState_GameEnded(game);
+    } else if(state === "special_discard_round") {
+        updateGameState_SpecialDiscardRound(game);
     }
+    
 }
 
 
