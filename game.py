@@ -1,5 +1,6 @@
 from questions import CARDS_QUESTIONS
 from answers import CARDS_ANSWERS
+from bot_names import BOT_NAMES
 import uuid
 import random
 
@@ -9,7 +10,7 @@ OWNER_AFK_TRANSFER_SECONDS = 5 * 60
 EMPTY_GAME_TIMEOUT_SECONDS = 15 * 60
 
 # Bots: Präfix für Namen (Benutzernamen dürfen nicht so beginnen)
-BOT_NAME_PREFIX = "🤖 Bot"
+BOT_NAME_PREFIX = "🤖"
 # So lange "überlegt" ein Bot als Czar, bevor er zufällig wählt
 BOT_CZAR_SECONDS = 8
 # Wegwerfrunde: so lange sind die neuen Karten noch sichtbar, wenn alle abgeworfen haben
@@ -399,10 +400,16 @@ class Game:
         if len(self.active_players) + len(self.pending_players) >= self.settings["maxPlayers"]:
             return False, "Maximale Spieleranzahl erreicht"
 
-        number = 1
-        while f"{BOT_NAME_PREFIX} {number}" in self.members():
-            number += 1
-        name = f"{BOT_NAME_PREFIX} {number}"
+        members = self.members()
+        free_names = [f"{BOT_NAME_PREFIX} {n}" for n in BOT_NAMES if f"{BOT_NAME_PREFIX} {n}" not in members]
+        if free_names:
+            name = random.choice(free_names)
+        else:
+            # Alle Namen vergeben -> durchnummerieren
+            number = 1
+            while f"{BOT_NAME_PREFIX} Bot {number}" in members:
+                number += 1
+            name = f"{BOT_NAME_PREFIX} Bot {number}"
 
         self.bots.append(name)
         self.active_players.append(name)

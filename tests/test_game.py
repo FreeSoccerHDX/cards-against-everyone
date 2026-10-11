@@ -452,3 +452,14 @@ def test_submitting_new_card_reduces_marked_count():
     game.current_black_card = {"card_text": "_____", "num_blanks": 1}
     game.submit_white_cards(player, [6])
     assert game.new_cards[player] == 1
+
+
+def test_bot_names_from_list_and_fallback_when_exhausted():
+    from bot_names import BOT_NAMES
+    game, _, _ = make_game(("anna",))
+    game.settings["maxPlayers"] = len(BOT_NAMES) + 3
+    names = [game.add_bot()[1] for _ in range(len(BOT_NAMES) + 2)]
+    assert len(set(names)) == len(names)
+    assert all(n.startswith("🤖 ") for n in names)
+    assert {n[2:] for n in names[:len(BOT_NAMES)]} == set(BOT_NAMES)
+    assert names[-2:] == ["🤖 Bot 1", "🤖 Bot 2"]

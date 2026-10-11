@@ -264,7 +264,7 @@ def handle_set_username(data):
         emit('username_error', {'message': 'Der Name darf maximal 30 Zeichen lang sein (aktuell: ' + str(len(username)) + ')'})
         return
 
-    if username.startswith(BOT_NAME_PREFIX.split(' ')[0]):
+    if username.startswith(BOT_NAME_PREFIX):
         emit('username_error', {'message': 'Dieser Name ist für Bots reserviert'})
         return
 
