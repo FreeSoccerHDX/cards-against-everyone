@@ -61,8 +61,35 @@ function autoSaveSettings() {
     }, 500); // 500ms Debounce
 }
 
+// Zahlenfelder -> Settings-Key (zum Wiederherstellen ungültiger Eingaben)
+const numberSettingsInputs = [
+    [settingsMaxPlayers, 'maxPlayers'],
+    [settingsMaxCards, 'maxWhiteCardsPerPlayer'],
+    [settingsWinScore, 'maxPointsToWin'],
+    [settingsMaxRounds, 'maxRounds'],
+    [settingsAnswerTime, 'timeToChooseWhiteCards'],
+    [settingsCzarTime, 'timeToChooseWinner'],
+    [settingsRoundDelay, 'timeAfterWinnerChosen'],
+    [settingsDiscardRoundInterval, 'discardRoundInterval'],
+    [settingsDiscardMaxCards, 'discardMaxCards'],
+    [settingsDiscardTime, 'discardTime'],
+];
+
+// Ungültige Zahl beim Verlassen melden und letzten gespeicherten Wert wiederherstellen
+function restoreInvalidNumber(input, key) {
+    if (readNumber(input) !== null || !window.currentGameData) {
+        return;
+    }
+    showNotification(`Erlaubt sind Werte von ${input.min} bis ${input.max}`, 'error');
+    input.value = window.currentGameData.settings[key];
+}
+
 // Event-Listener für alle Settings-Inputs
 function initializeSettingsListeners() {
+    numberSettingsInputs.forEach(([input, key]) => {
+        input.addEventListener('blur', () => restoreInvalidNumber(input, key));
+    });
+
     settingsName.addEventListener('input', autoSaveSettings);
     // Leerer Name wird nicht gespeichert -> beim Verlassen letzten gültigen Namen wiederherstellen
     settingsName.addEventListener('blur', () => {
