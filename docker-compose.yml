@@ -6,7 +6,7 @@ services:
     volumes:
       - .:/app
     environment:
-      - FLASK_ENV=development
-      - FLASK_DEBUG=1
+      # DEBUG=1 aktiviert Debug-Modus und Auto-Reload (nur für die Entwicklung!)
+      - DEBUG=0
     command: python app.py
     restart: unless-stopped

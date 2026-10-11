@@ -21,12 +21,14 @@
 
 ## Features
 
-- **Eindeutige Nutzernamen** mit automatischer Wiederverbindung (30s Timeout)
+- **Eindeutige Nutzernamen** mit Session-Token: Nach Verbindungsabbruch, Reload oder Netzwechsel geht es automatisch an derselben Stelle weiter
+- **AFK-sicher**: Spieler ohne Verbindung behalten ihren Platz und ihre Punkte bis zum Spielende, ihre Karten werden automatisch abgegeben
+- **Späteinstieg**: Beitritt in laufende Spiele möglich, Einstieg ab der nächsten Runde
 - **Lobby-System**: Öffentliche Spiele durchsuchen oder eigene erstellen
 - **Flexible Spielerstellung**: Name, Sichtbarkeit, Passwortschutz
 - **Live-Einstellungen**: Änderungen werden automatisch gespeichert
 - **Join-Links**: Einfache Einladung per Link
-- **Host-Migration**: Automatischer Host-Wechsel, falls der Ersteller das Spiel verlässt
+- **Host-Migration**: Automatischer Host-Wechsel, falls der Ersteller das Spiel verlässt oder länger als 5 Minuten inaktiv ist
 - **Echtzeit-Kommunikation** über WebSockets
 
 ---
@@ -62,7 +64,7 @@ Alle Einstellungen können (sofern Host) auch während des Spiels angepasst werd
     ```bash
     docker-compose up --build
     ```
-3. Anwendung im Browser öffnen: [http://localhost:5000](http://localhost:5000)
+3. Anwendung im Browser öffnen: [http://localhost:3132](http://localhost:3132)
 
 **Im Hintergrund starten:**
 ```bash
@@ -108,15 +110,20 @@ docker-compose up -d --build
 
 ```
 cards-against-everyone/
-├── app.py                 # Flask-Backend mit Socket.IO
+├── app.py                 # Flask-Backend mit Socket.IO (Benutzer, Sessions, Events)
+├── game.py                # Spiellogik (Runden, Czar, Kartenstapel, AFK-Handling)
+├── questions.py           # Schwarze Karten
+├── answers.py             # Weiße Karten
 ├── requirements.txt       # Python-Abhängigkeiten
+├── requirements-dev.txt   # Zusätzlich für Tests
 ├── Dockerfile             # Container-Definition
 ├── docker-compose.yml     # Docker Compose Konfiguration
-├── templates/
-│   └── index.html         # Haupt-HTML-Template
+├── tests/                 # pytest-Tests für Spiellogik und Reconnect
+├── templates/             # HTML-Templates
 └── static/
-    ├── style.css          # CSS-Styles
-    └── script.js          # Frontend-Logik
+    ├── css/               # Styles
+    ├── js/                # Frontend-Logik
+    └── sounds/            # Soundeffekte
 ```
 
 ---
@@ -131,7 +138,13 @@ cards-against-everyone/
   ```bash
   docker-compose down
   ```
-- **Hot-Reload im Development-Modus** (automatisch aktiviert)
+- **Debug-Modus mit Auto-Reload** nur mit `DEBUG=1` (z.B. `DEBUG=1 python app.py`). Standardmäßig aus, da ein Neustart alle laufenden Spiele beendet (Zustand liegt nur im Speicher).
+- **Optional `SECRET_KEY`** als Umgebungsvariable setzen, sonst wird bei jedem Start ein zufälliger erzeugt.
+- **Tests:**
+  ```bash
+  pip install -r requirements-dev.txt
+  pytest
+  ```
 
 ---
 

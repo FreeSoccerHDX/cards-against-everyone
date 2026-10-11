@@ -9,3 +9,5 @@ venv/
 .gitignore
 *.md
 .DS_Store
+tests/
+.pytest_cache/
