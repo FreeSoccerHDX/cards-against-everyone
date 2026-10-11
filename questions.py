@@ -824,10 +824,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Als ich auf LSD war, verwandelte sich _____ in _____.",
-        "num_blanks": 2
-    },
-    {
         "card_text": "Was ist am knusprigsten _____?",
         "num_blanks": 1
     },
@@ -927,7 +923,6 @@ CARDS_QUESTIONS = [
         "card_text": "_____ ist der beste Freund einer jeden Frau.",
         "num_blanks": 1
     },
-    
     {
         "card_text": "Was würdest du machen, wenn du König von Deutschland wärst? _____",
         "num_blanks": 1
@@ -1261,10 +1256,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Lesbische Zigeuner beziehen ihre Lebensfreude vor allem aus _____.",
-        "num_blanks": 1
-    },
-    {
         "card_text": "Wenn ich mir ein Creed-Album anhöre, fühle ich mich wie _____.",
         "num_blanks": 1
     },
@@ -1445,10 +1436,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Früher war ich auch ein Abenteurer, aber dann _____.",
-        "num_blanks": 1
-    },
-    {
         "card_text": "Nach der Beichte sagte der Priester zu mir nur '_____.'",
         "num_blanks": 1
     },
@@ -1538,10 +1525,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "Wir schieben einfach _____ woanders hin!",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Wir haben dich nicht eingeladen weil wir dich mögen, sondern um dich _____ auszusetzen.",
         "num_blanks": 1
     },
     {
@@ -1677,7 +1660,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 2
     },
     {
-        "card_text": "'Sie sprachen: Glaube an _____, so wirst du und dein Haus selig!'   - Apg 16:31",
+        "card_text": "'Sie sprachen: Glaube an _____, so wirst du und dein Haus selig!' - Apg 16:31",
         "num_blanks": 1
     },
     {
@@ -1729,7 +1712,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Das neuste Wundermittel der Medizin ist  _____, die möglichen Nebenwirkungen sind _____.",
+        "card_text": "Das neuste Wundermittel der Medizin ist _____, die möglichen Nebenwirkungen sind _____.",
         "num_blanks": 2
     },
     {
@@ -1757,7 +1740,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "_____ ist schlau,                         sei wie er!",
+        "card_text": "_____ ist schlau, sei wie er!",
         "num_blanks": 1
     },
     {
@@ -1921,10 +1904,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Hier 112, was ist Ihr Notfall _____?",
-        "num_blanks": 1
-    },
-    {
         "card_text": "Schwarz, Schwärzer, _____.",
         "num_blanks": 1
     },
@@ -1985,10 +1964,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "_____ geht mir in letzter Zeit gewaltig auf den Sack!",
-        "num_blanks": 1
-    },
-    {
         "card_text": "Thorge, mittlerweile 21, steht ganz besonders auf _____.",
         "num_blanks": 1
     },
@@ -2001,7 +1976,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Das neuste Wundermittel der Medizin ist  _____, zu den möglichen Nebenwirkungen zählt jedoch _____.",
+        "card_text": "Das neuste Wundermittel der Medizin ist _____, zu den möglichen Nebenwirkungen zählt jedoch _____.",
         "num_blanks": 2
     },
     {
@@ -2201,7 +2176,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "1978: 'Ich wette in der Zukunft gibt es fliegende Autos!'                                                                                                   2020: _____",
+        "card_text": "1978: 'Ich wette in der Zukunft gibt es fliegende Autos!' 2020: _____",
         "num_blanks": 1
     },
     {
@@ -2245,10 +2220,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Nach dem Erdbeben, brachte Frank Walter Steinmeier den Haitianern _____.",
-        "num_blanks": 1
-    },
-    {
         "card_text": "In meinem Amazonpaket war neulich nicht nur die bestellte Tastatur, sondern auch _____.",
         "num_blanks": 1
     },
@@ -2286,10 +2257,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "Seit ich _____ kenne, hat sich mein Leben total verändert!",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Laut meiner Ex ist meine größte Stärke _____.",
         "num_blanks": 1
     },
     {
@@ -2389,7 +2356,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Was ist _____ und macht _____?         Richtig, _____!",
+        "card_text": "Was ist _____ und macht _____? Richtig, _____!",
         "num_blanks": 3
     },
     {
@@ -2417,7 +2384,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Sie mögen uns  _____ nehmen, aber niemals _____!",
+        "card_text": "Sie mögen uns _____ nehmen, aber niemals _____!",
         "num_blanks": 2
     },
     {
@@ -2473,10 +2440,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Riecht nach _____.",
-        "num_blanks": 1
-    },
-    {
         "card_text": "Ich werde ein Staatsbegräbnis für _____ abhalten.",
         "num_blanks": 1
     },
@@ -2510,10 +2473,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "Wenn die Purge echt wäre würde ich die ganze Nacht nur _____.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Mein Penis kann _____.",
         "num_blanks": 1
     },
     {
@@ -2677,7 +2636,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "America first,                        _____ second.",
+        "card_text": "America first, _____ second.",
         "num_blanks": 1
     },
     {
@@ -2833,7 +2792,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "'Was du arbeitest im Altersheim? Was musst du denn dort den ganzen Tag machen?'",
+        "card_text": "'Was du arbeitest im Altersheim? Was musst du denn dort den ganzen Tag machen?' _____",
         "num_blanks": 1
     },
     {
@@ -2861,7 +2820,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "'Was hat er gesagt?'                'Irgendwas von wegen _____.'",
+        "card_text": "'Was hat er gesagt?' 'Irgendwas von wegen _____.'",
         "num_blanks": 1
     },
     {
@@ -2962,10 +2921,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "Ein Film von Guy Richie heißt 'Bube, Dame, König, _____'.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "_____ ist der beste Freund einer jeden Frau.",
         "num_blanks": 1
     },
     {
@@ -3081,11 +3036,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Die magischen Kräfte des Mondes bescheren uns heute Nacht _____.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "'Wo warst du?'                  'Oh, ich musste noch schnell _____. Nichts besonderes.'",
+        "card_text": "'Wo warst du?' 'Oh, ich musste noch schnell _____. Nichts besonderes.'",
         "num_blanks": 1
     },
     {
@@ -3329,7 +3280,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Wie hoch ist seine Kampfkraft?                             Sie ist über _____.",
+        "card_text": "Wie hoch ist seine Kampfkraft? Sie ist über _____.",
         "num_blanks": 1
     },
     {
@@ -3425,7 +3376,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 2
     },
     {
-        "card_text": "Bei meinem nächsten Zaubertrick werde ich _____ aus  _____ holen.",
+        "card_text": "Bei meinem nächsten Zaubertrick werde ich _____ aus _____ holen.",
         "num_blanks": 2
     },
     {
@@ -3441,7 +3392,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Was kann der Kandidat heute Abend bei 'Schlag den Raab' gewinnen?                                               A: 1 Mio. Euro                      B: _____                                       Rufen Sie jetzt an!",
+        "card_text": "Was kann der Kandidat heute Abend bei 'Schlag den Raab' gewinnen? A: 1 Mio. Euro B: _____ Rufen Sie jetzt an!",
         "num_blanks": 1
     },
     {
@@ -3454,10 +3405,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "_____ find ich knorke, wie die coolen Kids es heute sagen würden.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Lassen sie mich durch, ich bin _____!",
         "num_blanks": 1
     },
     {
@@ -3478,10 +3425,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "Was macht mich auf jeden Fall geil _____?",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "In diesem Bordell gibt es kein Sex, sondern _____.",
         "num_blanks": 1
     },
     {
@@ -3585,7 +3528,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "'Wir sollten eine Band gründen!'                                   'Und wie sollen wir uns nennen?'                                        '_____!'",
+        "card_text": "'Wir sollten eine Band gründen!' 'Und wie sollen wir uns nennen?' '_____!'",
         "num_blanks": 1
     },
     {
@@ -3665,7 +3608,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 2
     },
     {
-        "card_text": "'Ihnen wird _____ vorgeworfen. Wie plädieren sie?'                                          'Schuldig im Sinne der Anklage, euer Ehren.'",
+        "card_text": "'Ihnen wird _____ vorgeworfen. Wie plädieren sie?' 'Schuldig im Sinne der Anklage, euer Ehren.'",
         "num_blanks": 1
     },
     {
@@ -3793,14 +3736,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Asterix und Obelix in _____.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Was willst du tun _____?",
-        "num_blanks": 1
-    },
-    {
         "card_text": "Google bloß nicht nach _____. Du wirst danach nächtelang nicht schlafen.",
         "num_blanks": 1
     },
@@ -3913,7 +3848,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Ich habe meinem jüdischen Neffen _____ zu seiner Bar-Mitzwa  geschenkt.",
+        "card_text": "Ich habe meinem jüdischen Neffen _____ zu seiner Bar-Mitzwa geschenkt.",
         "num_blanks": 1
     },
     {
@@ -3950,10 +3885,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "Mein Liebesleben in einer Karte: _____",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Ich wäre gerne _____.",
         "num_blanks": 1
     },
     {
@@ -4009,15 +3940,11 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Die Büchse der Pandora enthält _____, _____ und  _____.",
+        "card_text": "Die Büchse der Pandora enthält _____, _____ und _____.",
         "num_blanks": 3
     },
     {
         "card_text": "_____ funktioniert einfach nicht, obwohl ich es schon 10.000 Mal versucht habe!",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "America first,                         _____ second.",
         "num_blanks": 1
     },
     {
@@ -4073,7 +4000,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "_____ oder _____?        Warum nicht beides?",
+        "card_text": "_____ oder _____? Warum nicht beides?",
         "num_blanks": 2
     },
     {
@@ -4109,15 +4036,11 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Mein perfekter Lover ist _____,                                   mag _____,                              und hat _____!",
+        "card_text": "Mein perfekter Lover ist _____, mag _____, und hat _____!",
         "num_blanks": 3
     },
     {
         "card_text": "Ihr nennt es _____, ich nenne es Meinungsfreiheit!",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "_____ hat immer Recht!",
         "num_blanks": 1
     },
     {
@@ -4150,7 +4073,7 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "_____ is love,<br>_____ is life.",
-        "num_blanks": 1
+        "num_blanks": 2
     },
     {
         "card_text": "Sogar _____ ist besser mit der Stimme von Morgan Freeman.",
@@ -4162,10 +4085,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "In Guantanamo wird _____ als Foltermethode genutzt.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Ich identifiziere mich sexuell als _____.",
         "num_blanks": 1
     },
     {
@@ -4189,7 +4108,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 2
     },
     {
-        "card_text": "Ich hab Bock auf _____, Bock auf  _____ und Bock auf _____.",
+        "card_text": "Ich hab Bock auf _____, Bock auf _____ und Bock auf _____.",
         "num_blanks": 3
     },
     {
@@ -4197,7 +4116,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Ich hab, ich hab, ich hab, ich hab  _____ und _____.",
+        "card_text": "Ich hab, ich hab, ich hab, ich hab _____ und _____.",
         "num_blanks": 2
     },
     {
@@ -4213,7 +4132,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Wenn ich einen Wunsch frei hätte, dann wäre das  _____.",
+        "card_text": "Wenn ich einen Wunsch frei hätte, dann wäre das _____.",
         "num_blanks": 1
     },
     {
@@ -4249,11 +4168,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "So schlimm war die DDR auch nicht, da gab es zum Beispiel noch  _____.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Ich trete dem IS bei damit ich endlich mal _____ kann.",
+        "card_text": "So schlimm war die DDR auch nicht, da gab es zum Beispiel noch _____.",
         "num_blanks": 1
     },
     {
@@ -4273,11 +4188,11 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "1, 2, _____,                               3, 4, _____,                             5, 6, _____,                                7, 8, Gute Nacht.",
+        "card_text": "1, 2, _____, 3, 4, _____, 5, 6, _____, 7, 8, Gute Nacht.",
         "num_blanks": 3
     },
     {
-        "card_text": "Du nennst es _____,           ich nenne es _____.",
+        "card_text": "Du nennst es _____, ich nenne es _____.",
         "num_blanks": 2
     },
     {
@@ -4318,10 +4233,6 @@ CARDS_QUESTIONS = [
     },
     {
         "card_text": "Allein für _____ würde ich GEZ zahlen.",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Angela Merkel ist _____.",
         "num_blanks": 1
     },
     {
@@ -4429,7 +4340,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Schnell wie _____,              zäh wie _____ und                            hart wie _____.",
+        "card_text": "Schnell wie _____, zäh wie _____ und hart wie _____.",
         "num_blanks": 3
     },
     {
@@ -4493,7 +4404,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Das neuste Wundermittel der Medizin ist  _____ hat allerdings _____ als Nebenwirkung.",
+        "card_text": "Das neuste Wundermittel der Medizin ist _____ hat allerdings _____ als Nebenwirkung.",
         "num_blanks": 2
     },
     {
@@ -4677,7 +4588,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Anstatt meine Zeit mit  CaH zu verschwenden könnte ich ja auch _____.",
+        "card_text": "Anstatt meine Zeit mit CaH zu verschwenden könnte ich ja auch _____.",
         "num_blanks": 1
     },
     {
@@ -4693,7 +4604,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Der neue James Bond mit _____ in der Rolle des James  Bond trägt den Namen '_____.'",
+        "card_text": "Der neue James Bond mit _____ in der Rolle des James Bond trägt den Namen '_____.'",
         "num_blanks": 2
     },
     {
@@ -4785,7 +4696,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Die drei Haupttodes-ursachen in Russland:                                 Alkohol, Straßenverkehr und _____.",
+        "card_text": "Die drei Haupttodes-ursachen in Russland: Alkohol, Straßenverkehr und _____.",
         "num_blanks": 1
     },
     {
@@ -5281,10 +5192,6 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Was fehlt Afrika _____?",
-        "num_blanks": 1
-    },
-    {
         "card_text": "Was löst alle Probleme _____?",
         "num_blanks": 1
     },
@@ -5405,7 +5312,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Egal was passiert, du  darfst niemals _____ googeln!",
+        "card_text": "Egal was passiert, du darfst niemals _____ googeln!",
         "num_blanks": 1
     },
     {
@@ -5637,7 +5544,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "'Wahre Liebe', oder wie man im Saarland sagt:",
+        "card_text": "'Wahre Liebe', oder wie man im Saarland sagt: _____",
         "num_blanks": 1
     },
     {
@@ -5753,11 +5660,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "Bei jedem Respekt, Herr Wissenschaftler. Globale Erwärmung ist nicht von Menschen gemacht, sondern von _____!",
-        "num_blanks": 1
-    },
-    {
-        "card_text": "Wolfgang (59): Hat einen Schleckermarkt mit  _____ überfallen.",
+        "card_text": "Wolfgang (59): Hat einen Schleckermarkt mit _____ überfallen.",
         "num_blanks": 1
     },
     {
@@ -5841,7 +5744,7 @@ CARDS_QUESTIONS = [
         "num_blanks": 1
     },
     {
-        "card_text": "'Als was haben sie gearbeitet, bevor sie sich entschieden haben, sich hier zu bewerben?'",
+        "card_text": "'Als was haben sie gearbeitet, bevor sie sich entschieden haben, sich hier zu bewerben?' _____",
         "num_blanks": 1
     },
     {
@@ -5912,7 +5815,7 @@ CARDS_QUESTIONS = [
         "card_text": "Was machen meine Eltern wohl gerade im Schlafzimmer _____?",
         "num_blanks": 1
     },
-     {
+    {
         "card_text": "_____ hat alles nur schlimmer gemacht.",
         "num_blanks": 1
     },
