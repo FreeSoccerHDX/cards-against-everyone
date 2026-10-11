@@ -28,26 +28,32 @@ const settingsInputs = document.querySelectorAll('.settings-input');
 // Auto-Save Mechanismus für Settings
 let settingsTimeout = null;
 
+// Zahl aus Input lesen; ungültige Werte (außerhalb min/max) werden nicht gesendet
+function readNumber(input) {
+    const value = parseInt(input.value);
+    return (Number.isNaN(value) || !input.checkValidity()) ? null : value;
+}
+
 function autoSaveSettings() {
 
     clearTimeout(settingsTimeout);
     settingsTimeout = setTimeout(() => {
         const settingsData = {
-            gameName: settingsName.value.trim(),
+            gameName: settingsName.value.trim() || null,
             publicVisible: settingsPublic.checked,
             publicVisibleDuringGame: settingsPublicDuringGame.checked,
             password: settingsPassword.value.trim(),
-            maxPlayers: parseInt(settingsMaxPlayers.value),
-            maxWhiteCardsPerPlayer: parseInt(settingsMaxCards.value),
-            maxPointsToWin: parseInt(settingsWinScore.value),
-            maxRounds: parseInt(settingsMaxRounds.value),
-            timeToChooseWhiteCards: parseInt(settingsAnswerTime.value),
-            timeToChooseWinner: parseInt(settingsCzarTime.value),
-            timeAfterWinnerChosen: parseInt(settingsRoundDelay.value),
+            maxPlayers: readNumber(settingsMaxPlayers),
+            maxWhiteCardsPerPlayer: readNumber(settingsMaxCards),
+            maxPointsToWin: readNumber(settingsWinScore),
+            maxRounds: readNumber(settingsMaxRounds),
+            timeToChooseWhiteCards: readNumber(settingsAnswerTime),
+            timeToChooseWinner: readNumber(settingsCzarTime),
+            timeAfterWinnerChosen: readNumber(settingsRoundDelay),
             discardRoundActive: settingsDiscardRoundActive.checked,
-            discardRoundInterval: parseInt(settingsDiscardRoundInterval.value),
-            discardMaxCards: parseInt(settingsDiscardMaxCards.value),
-            discardTime: parseInt(settingsDiscardTime.value)
+            discardRoundInterval: readNumber(settingsDiscardRoundInterval),
+            discardMaxCards: readNumber(settingsDiscardMaxCards),
+            discardTime: readNumber(settingsDiscardTime)
             
         };
         window.socket.emit('update_settings', settingsData);
@@ -83,21 +89,25 @@ function initializeSettingsListeners() {
 
 // Funktion um Settings-Werte aus einem Game-Objekt zu laden
 function loadGameSettings(game) {
-    settingsName.value = game.settings.gameName;
+    // Feld, in dem der Owner gerade tippt, nicht überschreiben
+    const focused = document.activeElement;
+    const set = (input, value) => { if (input !== focused) input.value = value; };
+
+    set(settingsName, game.settings.gameName);
     settingsPublic.checked = game.settings.publicVisible;
-    settingsPassword.value = game.settings.password || '';
-    settingsMaxCards.value = game.settings.maxWhiteCardsPerPlayer;
-    settingsWinScore.value = game.settings.maxPointsToWin || 5;
-    settingsMaxRounds.value = game.settings.maxRounds || 25;
-    settingsAnswerTime.value = game.settings.timeToChooseWhiteCards || 60;
-    settingsCzarTime.value = game.settings.timeToChooseWinner || 60;
-    settingsRoundDelay.value = game.settings.timeAfterWinnerChosen || 15;
-    settingsMaxPlayers.value = game.settings.maxPlayers || 10;
+    set(settingsPassword, game.settings.password || '');
+    set(settingsMaxCards, game.settings.maxWhiteCardsPerPlayer);
+    set(settingsWinScore, game.settings.maxPointsToWin || 5);
+    set(settingsMaxRounds, game.settings.maxRounds || 25);
+    set(settingsAnswerTime, game.settings.timeToChooseWhiteCards || 60);
+    set(settingsCzarTime, game.settings.timeToChooseWinner || 60);
+    set(settingsRoundDelay, game.settings.timeAfterWinnerChosen || 15);
+    set(settingsMaxPlayers, game.settings.maxPlayers || 10);
     settingsPublicDuringGame.checked = game.settings.publicVisibleDuringGame || false;
     settingsDiscardRoundActive.checked = game.settings.discardRoundActive || false;
-    settingsDiscardRoundInterval.value = game.settings.discardRoundInterval || 10;
-    settingsDiscardMaxCards.value = game.settings.discardMaxCards || 3;
-    settingsDiscardTime.value = game.settings.discardTime || 30;
+    set(settingsDiscardRoundInterval, game.settings.discardRoundInterval || 10);
+    set(settingsDiscardMaxCards, game.settings.discardMaxCards || 3);
+    set(settingsDiscardTime, game.settings.discardTime || 30);
 }
 
 // Funktion um Settings-Inputs basierend auf Creator-Status zu aktivieren/deaktivieren

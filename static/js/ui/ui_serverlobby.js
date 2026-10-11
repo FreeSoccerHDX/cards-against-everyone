@@ -96,14 +96,10 @@ window.socket.on('public_games_list', (data) => {
 // Lobby - Logout-Button
 logoutBtn.addEventListener('click', async () => {
     if (await customConfirm('Möchtest du dich wirklich abmelden?', 'Abmelden')) {
-        // Lösche gespeicherten Username
-        clearSavedUsername();
-        
-        // Verlasse ggf. Spiel
-        if (window.currentGameData) {
-            window.currentGameData = null;
-            socket.emit('leave_game');
-        }
+        // Lösche gespeichertes Token, Server gibt Namen frei und verlässt ggf. das Spiel
+        clearSavedToken();
+        window.currentGameData = null;
+        socket.emit('logout');
         
         // Reset Zustand
         window.currentUsername = null;

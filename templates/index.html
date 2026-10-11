@@ -199,6 +199,18 @@
 
     <div id="notification" class="notification"></div>
 
+    <!-- Verbindung verloren -->
+    <div id="connection-banner" class="connection-banner hidden">⚠️ Verbindung unterbrochen – verbinde neu...</div>
+
+    <!-- Sitzung in anderem Tab geöffnet -->
+    <div id="session-taken-over-overlay" class="session-overlay hidden">
+        <div class="session-overlay-box">
+            <h2>In anderem Tab geöffnet</h2>
+            <p>Das Spiel läuft jetzt in einem anderen Tab oder Fenster.</p>
+            <button id="session-take-back-btn" class="btn-primary btn-large">Hier weiterspielen</button>
+        </div>
+    </div>
+
     <!-- Custom Confirm Dialog -->
     {% include '_custom_confirm_dialog.html' %}
 

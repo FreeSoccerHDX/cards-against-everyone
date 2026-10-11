@@ -18,27 +18,30 @@ function resetAllData() {
     usernameError.textContent = '';
 }
 
-// LocalStorage für Reconnect
-function saveUsername(username) {
-    localStorage.setItem('cae_username', username);
+// LocalStorage für Reconnect: Session-Token vom Server
+function saveToken(token) {
+    localStorage.setItem('cae_token', token);
 }
-function getSavedUsername() {
-    return localStorage.getItem('cae_username');
+function getSavedToken() {
+    return localStorage.getItem('cae_token');
 }
-function clearSavedUsername() {
-    localStorage.removeItem('cae_username');
+function clearSavedToken() {
+    localStorage.removeItem('cae_token');
 }
+// Alter Eintrag aus Versionen ohne Token
+localStorage.removeItem('cae_username');
 
 
 // Socket Events
 socket.on('username_set', (data) => {
     console.log("Username set:", data, data.username);
     window.currentUsername = data.username;
-    saveUsername(window.currentUsername);
+    saveToken(data.token);
     currentUsernameDisplay.textContent = window.currentUsername;
     usernameError.textContent = '';
 
-    if(!data.hasGame) {   
+    if(!data.hasGame) {
+        window.currentGameData = null;
         // Prüfe ob Join-Link vorhanden ist
         if (joinGameId) {
             // Hole erst Spielinformationen
@@ -54,13 +57,6 @@ socket.on('username_set', (data) => {
 socket.on('username_error', (data) => {
     usernameError.textContent = data.message;
     showNotification(data.message, 'error');
-    
-    // Wenn wir bereits im Spiel waren aber Session abgelaufen ist (Server-Neustart),
-    // lösche gespeicherte Daten und lade neu
-    if (data.message.includes('abgelaufen')) {
-        clearSavedUsername();
-        setTimeout(() => location.reload(), 1000);
-    }
 });
 
 // Username Screen
@@ -99,6 +95,6 @@ function submitUsername() {
 
 window.ui.showLoginScreen = showLoginScreen;
 window.ui.resetAllData = resetAllData;
-window.ui.saveUsername = saveUsername;
-window.ui.getSavedUsername = getSavedUsername;
-window.ui.clearSavedUsername = clearSavedUsername;
+window.ui.saveToken = saveToken;
+window.ui.getSavedToken = getSavedToken;
+window.ui.clearSavedToken = clearSavedToken;

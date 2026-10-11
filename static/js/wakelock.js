@@ -1,6 +1,9 @@
 let wakeLock = null;
 
 async function enableWakeLock() {
+  if (!("wakeLock" in navigator)) {
+    return;
+  }
   try {
     wakeLock = await navigator.wakeLock.request("screen");
 
@@ -15,3 +18,10 @@ async function enableWakeLock() {
 }
 
 enableWakeLock();
+
+// Der Browser gibt den Wake Lock frei, sobald der Tab versteckt wird -> neu anfordern
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    enableWakeLock();
+  }
+});

@@ -151,7 +151,6 @@ function showGameScreen(game) {
 
 
 socket.on('settings_updated', (game) => {
-    currentGameCreator = game.creator;
     window.currentGameData = game;
     updateGameRoom(game);
 });
@@ -160,11 +159,12 @@ socket.on('player_joined', (data) => {
     const message = data.is_spectator ? 
         `${data.username} ist als Zuschauer beigetreten` : 
         `${data.username} ist beigetreten`;
-    showNotification(message, 'info');
+    if (data.username !== window.currentUsername) {
+        showNotification(message, 'info');
+    }
 
-    window.currentGameData.active_players = data.game.active_players
-    window.currentGameData.spectators = data.game.spectators
-    updateLobbyPlayerList(data.game);
+    window.currentGameData = data.game;
+    updateGameRoom(data.game);
 });
 
 socket.on('player_status_changed', (data) => {
@@ -186,8 +186,9 @@ socket.on('kicked_from_game', (data) => {
 
 
 socket.on('player_left', (data) => {
-    // Remove player from statuses
-    showNotification(`${data.username} hat das Spiel verlassen`, 'info');
+    if (data.username !== window.currentUsername) {
+        showNotification(`${data.username} hat das Spiel verlassen`, 'info');
+    }
     let game = data.game;
     window.currentGameData = game;
     updateGameRoom(game);
@@ -198,7 +199,7 @@ socket.on('player_left', (data) => {
 socket.on('game_paused', (data) => {
     window.currentGameData.paused = true;
     update_pauseOverlay(true);
-    updateTimerDisplay(data.time_left);
+    updateTimerDisplay(data.time_left, data.max_time);
 
     //pauseOverlay.style.display = 'flex';
     //pauseGameBtn.style.display = 'none';
@@ -208,7 +209,7 @@ socket.on('game_paused', (data) => {
 socket.on('game_resumed', (data) => {
     window.currentGameData.paused = false;
     update_pauseOverlay(false);
-    updateTimerDisplay(data.time_left);
+    updateTimerDisplay(data.time_left, data.max_time);
     //pauseOverlay.style.display = 'none';
     //pauseGameBtn.style.display = (window.currentGameData.owner == window.currentUsername) ? 'inline-block' : 'none';
     //resumeGameBtn.style.display = 'none';
@@ -266,7 +267,7 @@ function updateTimerDisplay(timeLeft, maxTime) {
     }
 
     if(window.currentGameData.state == "choosing_winner") {
-        if(window.currentGameData.winner_choosen) {
+        if(window.currentGameData.winner_chosen) {
             let maxTimeD = 1.0 * maxTime;
             let timeLeftD = 1.0 * timeLeft;
             let percentLeft = 10+100-(timeLeftD / maxTimeD) * 100;
@@ -338,6 +339,11 @@ socket.on('game_joined', (game) => {
     showGameScreen(game);
     showNotification('Spiel beigetreten!', 'success');
 });
+
+// Ist der aktuelle Benutzer in dieser Runde ein spielender Spieler (nicht Zuschauer / wartend)?
+function isPlayingThisRound(game) {
+    return game.active_players.includes(window.currentUsername);
+}
 
 function toggleCardSelection(index, cardEl) {
     // Blockiere während Pause
@@ -434,9 +440,10 @@ function displayState(game) {
         gamePlayContent.classList.remove('hidden');
         questionCardsContainer.classList.remove('hidden');
         czarInfo.classList.remove('hidden');
-        // only czar and spectator
-        if(gameState === 'choosing_cards' && (game.czar == window.currentUsername || game.spectators.includes(window.currentUsername))) {
+        // only czar, spectator and waiting players
+        if(gameState === 'choosing_cards' && (game.czar == window.currentUsername || !isPlayingThisRound(game))) {
             czarWaitingPhase.classList.remove('hidden');
+            update_czarWaitingTitle(game);
         }
     } else if(gameState === 'game_ended') {
         // show endgame elements: final scores, winner, history, back to lobby button
@@ -468,14 +475,17 @@ function updateGameState_ChoosingCards(game) {
     questionText.classList.remove('winner-flip');
     votingPhase.classList.add('hidden');
 
-    if(game.czar == window.currentUsername || game.spectators.includes(window.currentUsername)) {
-        update_czarDeliveryInfo(Object.keys(game.submitted_white_cards).length, game.active_players.length-1);
+    if(game.czar == window.currentUsername || !isPlayingThisRound(game)) {
+        answerPhase.classList.add('hidden');
+        waitingVotePhase.classList.add('hidden');
+        update_czarDeliveryInfo(Object.keys(game.submitted_white_cards).length, game.active_players.filter(p => p !== game.czar).length);
     } else {
         if(window.currentUsername in game.submitted_white_cards) {
             answerPhase.classList.add('hidden');
             waitingVotePhase.classList.remove('hidden');
         } else {
-            answerPhase.classList.remove('hidden');    
+            answerPhase.classList.remove('hidden');
+            waitingVotePhase.classList.add('hidden');
             update_gamehands(game);
         }
     }
@@ -516,6 +526,10 @@ function updateGameState_CountdownNextRound(game) {
     update_resultPhase(game);
 
     votingPhase.classList.add('hidden');
+    answerPhase.classList.add('hidden');
+    waitingVotePhase.classList.add('hidden');
+    selectedCards = [];
+    selectedDiscardCardsIDs = [];
 
     soundRoundEndTicking.pause();
     soundRoundEndTicking.currentTime = 0;
@@ -523,6 +537,10 @@ function updateGameState_CountdownNextRound(game) {
 
 function updateGameState_SpecialDiscardRound(game) {
     displayState(game);
+    answerPhase.classList.add('hidden');
+    waitingVotePhase.classList.add('hidden');
+    votingPhase.classList.add('hidden');
+    selectedCards = [];
     update_ownerControls(game);
     update_titleLobby(game);
     update_scores(game);
@@ -544,22 +562,37 @@ function update_discardPlayerHands(game) {
         cardEl.textContent = card;
         cardEl.dataset.index = index;
         
+        if (selectedDiscardCardsIDs.includes(index)) {
+            cardEl.classList.add('selected');
+        }
         cardEl.addEventListener('click', () => toggleDiscardCardSelection(index, cardEl));
-        
+
         playerHandDiscard.appendChild(cardEl);
     });
 
-    cardsNeededDiscard.textContent =  window.currentUsername in game.submitted_white_cards ? "Warte auf die anderen Spieler..." : "Wähle bis zu 3 Karte(n) zum Abwerfen aus.";
+    const maxDiscards = game.settings["discardMaxCards"] || 0;
+    const alreadyDiscarded = window.currentUsername in game.submitted_white_cards;
+    const playing = isPlayingThisRound(game);
 
-    const requiredDiscards = window.currentGameData.settings["discardMaxCards"] || 0;
-    submitDiscardBtn.disabled = Object.keys(game.submitted_white_cards).includes(window.currentUsername) || selectedDiscardCardsIDs.length !== requiredDiscards;
-    submitDiscardBtn.textContent = `Abwerfen (${selectedDiscardCardsIDs.length}/${requiredDiscards})`;
+    if (!playing) {
+        cardsNeededDiscard.textContent = game.spectators.includes(window.currentUsername) ? "Du schaust zu." : "Du steigst in der nächsten Runde ein.";
+    } else if (alreadyDiscarded) {
+        cardsNeededDiscard.textContent = "Warte auf die anderen Spieler...";
+    } else {
+        cardsNeededDiscard.textContent = `Wähle bis zu ${maxDiscards} Karte(n) zum Abwerfen aus.`;
+    }
 
-    playerHandDiscard.classList.toggle('hidden', window.currentUsername in game.submitted_white_cards);
-    submitDiscardBtn.classList.toggle('hidden', window.currentUsername in game.submitted_white_cards);
-    
-    //updateSelectionUI();
+    playerHandDiscard.classList.toggle('hidden', alreadyDiscarded || !playing);
+    submitDiscardBtn.classList.toggle('hidden', alreadyDiscarded || !playing);
+    update_discardButton();
+}
 
+function update_discardButton() {
+    const maxDiscards = window.currentGameData.settings["discardMaxCards"] || 0;
+    submitDiscardBtn.disabled = window.currentUsername in window.currentGameData.submitted_white_cards;
+    submitDiscardBtn.textContent = selectedDiscardCardsIDs.length === 0 ?
+        'Keine Karte abwerfen' :
+        `Abwerfen (${selectedDiscardCardsIDs.length}/${maxDiscards})`;
 }
 
 function toggleDiscardCardSelection(index, cardEl) {
@@ -587,10 +620,7 @@ function toggleDiscardCardSelection(index, cardEl) {
         }
     }
 
-    // Update submit button state
-    const requiredDiscards = window.currentGameData.settings["discardMaxCards"] || 0;
-    submitDiscardBtn.disabled = Object.keys(window.currentGameData.submitted_white_cards).includes(window.currentUsername) || selectedDiscardCardsIDs.length !== requiredDiscards;
-    submitDiscardBtn.textContent = `Abwerfen (${selectedDiscardCardsIDs.length}/${requiredDiscards})`;
+    update_discardButton();
 }
 
 function updateGameState_GameEnded(game) {
@@ -612,13 +642,19 @@ function update_gameEnd(game) {
 
     //console.log("Final Scores:", sortedScores, game.scores);
 
-    var totalActivePlayers = game.active_players.length;
-    var resettedToLobbyPlayers = game.resetted_to_lobby ? game.resetted_to_lobby.length : 0;
+    // Nur verbundene Mitglieder müssen bestätigen
+    const members = game.active_players.concat(game.spectators);
+    const connectedMembers = members.filter(m => game.player_status[m] === 'connected');
+    const returnedCount = connectedMembers.filter(m => game.returned_to_lobby.includes(m)).length;
 
-    backToLobbyBtn.innerText = "Zurück zur Lobby (" + resettedToLobbyPlayers + "/" + totalActivePlayers + ")";
+    backToLobbyBtn.innerText = "Zurück zur Lobby (" + returnedCount + "/" + connectedMembers.length + ")";
 
-    let playerColor = generatePlayerColor(sortedScores[0][0]);
-    gameWinner.innerHTML = `<span class="player-badge" style="background-color: ${playerColor.bgColor}; color: ${playerColor.textColor};">${escapeHtml(sortedScores[0][0])}</span>`;
+    if (sortedScores.length > 0) {
+        let playerColor = generatePlayerColor(sortedScores[0][0]);
+        gameWinner.innerHTML = `<span class="player-badge" style="background-color: ${playerColor.bgColor}; color: ${playerColor.textColor};">${escapeHtml(sortedScores[0][0])}</span>`;
+    } else {
+        gameWinner.textContent = 'Niemand';
+    }
 
     finalScores.innerHTML = '';
     sortedScores.forEach(([player, score], index) => {
@@ -646,11 +682,17 @@ function update_resultPhase(game) {
     let questionBlackText = game.current_black_card.card_text;
     let winning_white_cards = game.winning_white_cards;
     let winningUsername = winning_white_cards.playerName;
-    let winningAnswers = winning_white_cards.cards;
+    let winningAnswers = winning_white_cards.cards || [];
+
+    if (!winningUsername) {
+        update_question(game);
+        roundWinner.textContent = "Keine Abgaben – niemand gewinnt diese Runde";
+        return;
+    }
 
     // Ersetze jedes "_____" durch die entsprechende Antwort
     winningAnswers.forEach(answer => {
-        questionBlackText = questionBlackText.replace('_____', `<strong class="filled-answer">${answer}</strong>`);
+        questionBlackText = questionBlackText.replace('_____', `<strong class="filled-answer">${escapeHtml(answer)}</strong>`);
     });
     questionText.innerHTML = questionBlackText;
     questionText.classList.add('winner-flip');
@@ -663,7 +705,7 @@ function update_resultPhase(game) {
     } else {
         var playerColor = generatePlayerColor(winningUsername);
         roundWinner.innerHTML = `<span class="player-badge" style="background-color: ${playerColor.bgColor}; color: ${playerColor.textColor};">${escapeHtml(winningUsername)}</span> gewinnt diese Runde!`;
-        showNotification(`${escapeHtml(winningUsername)} gewinnt diese Runde!`, 'success');
+        showNotification(`${winningUsername} gewinnt diese Runde!`, 'success');
     }
 }
 
@@ -683,15 +725,15 @@ function update_czarSelection(game) {
     let playermapping = game.player_mapping;
     let currentQuestion = game.current_black_card;
 
-    let winner_choosen = game.winner_choosen || false;
+    let winner_chosen = game.winner_chosen || false;
     let current_czar_selected_player = game.current_czar_selected_player || null;
 
     let player_reactions = game.player_reactions || {}; // { player_index: points }
 
     votingPhaseTitle.textContent = isCzar ?
-        (winner_choosen ? 'Du kannst die Auswahl noch ändern' : 'Wähle die beste Antwort!') 
+        (winner_chosen ? 'Du kannst die Auswahl noch ändern' : 'Wähle die beste Antwort!') 
         :
-        (winner_choosen ? 'Der Czar hat gewählt...' : 'Warte während der Czar am auswählen ist...');
+        (winner_chosen ? 'Der Czar hat gewählt...' : 'Warte während der Czar am auswählen ist...');
 
     for (const i in playermapping) {
         // Finde die Option, die zu diesem Spieler gehört
@@ -719,7 +761,7 @@ function update_czarSelection(game) {
         
         if (isCzar) {
             optionEl.addEventListener('click', () => selectWinner(i, optionEl));
-        } else {
+        } else if (isPlayingThisRound(game)) {
             // add buttons for reactions (lach-Emoji, Daumen hoch, Daumen runter, schädel-emoji -> gibt 2,1,-1,-2 punkte) 
             let reactionsDiv = document.createElement('div');
             reactionsDiv.className = 'reaction-buttons';
@@ -784,7 +826,7 @@ function update_czarInfo(game) {
     if(czar == window.currentUsername) {
         czarInfo.innerText = "Du bist der Card Czar dieser Runde!";
     } else {
-        czarInfo.innerText = `Card Czar: ${czar}`;
+        czarInfo.innerText = czar ? `Card Czar: ${czar}` : 'Card Czar: – (wird zufällig gewählt)';
     }
 }
 
@@ -814,7 +856,7 @@ function update_scores(game) {
     winScoreLabel.style.display = 'block';
 
     scoresPanel.innerHTML = '';
-    const maxScore = Math.max(...Object.values(game.scores));
+    const maxScore = Math.max(0, ...Object.values(game.scores));
 
     for (const [player, score] of Object.entries(game.scores)) {
         const item = document.createElement('div');
@@ -844,6 +886,20 @@ function update_scores(game) {
         
         scoresPanel.appendChild(item);
     }
+
+    // Spieler, die in der nächsten Runde einsteigen
+    (game.pending_players || []).forEach(player => {
+        const item = document.createElement('div');
+        item.className = 'score-item pending-player';
+        item.title = 'Steigt in der nächsten Runde ein';
+        item.innerHTML = `
+            ${window.currentUsername === player ? '<span class="current-player-indicator" title="Du">(Du)</span>' : ''}
+            <span class="score-name">${escapeHtml(player)}</span>
+            <span class="score-value">⏳</span>
+        `;
+        applyPlayerColor(item, player);
+        scoresPanel.appendChild(item);
+    });
 }
 
 
@@ -852,6 +908,8 @@ function update_gamehands(game) {
     if(game.currentPlayerCards) {
         currentHand = game.currentPlayerCards;
     }
+    // Auswahl verwerfen, falls sie nicht mehr zur Hand passt
+    selectedCards = selectedCards.filter(index => index < currentHand.length);
 
     playerHand.innerHTML = '';
 
@@ -861,8 +919,16 @@ function update_gamehands(game) {
         cardEl.textContent = card;
         cardEl.dataset.index = index;
         
+        const selectionPosition = selectedCards.indexOf(index);
+        if (selectionPosition > -1) {
+            cardEl.classList.add('selected');
+            const numberBadge = document.createElement('div');
+            numberBadge.className = 'selection-number';
+            numberBadge.textContent = selectionPosition + 1;
+            cardEl.appendChild(numberBadge);
+        }
         cardEl.addEventListener('click', () => toggleCardSelection(index, cardEl));
-        
+
         playerHand.appendChild(cardEl);
     });
     
@@ -899,7 +965,7 @@ function update_joinlink(game) {
 function updateGameRoom(game) {
     let state = game.state; // 'lobby', 'choosing_cards', 'choosing_winner', 'countdown_next_round', 'game_ended'
 
-    if(game.resetted_to_lobby && game.resetted_to_lobby.includes(window.currentUsername)) {
+    if(game.returned_to_lobby && game.returned_to_lobby.includes(window.currentUsername)) {
         state = 'lobby';
         window.currentGameData.state = 'lobby';
     }
@@ -959,9 +1025,9 @@ function updateLobbyPlayerList(game) {
         let connection_status = player_status[player] || 'connected';
         let canKick = (game.owner == window.currentUsername) && (player != window.currentUsername);
         let canForceRole = (game.owner == window.currentUsername) && (player != window.currentUsername);
-        let isResettedToLobby = !isSpectator && (game.resetted_to_lobby.length > 0 && !game.resetted_to_lobby.includes(player));
+        let notReturnedToLobby = !isSpectator && (game.returned_to_lobby.length > 0 && !game.returned_to_lobby.includes(player));
 
-        let listObject = createListObject(player, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole, isResettedToLobby);
+        let listObject = createListObject(player, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole, notReturnedToLobby);
 
         if (isSpectator) {
             spectatorsList.appendChild(listObject);
@@ -971,7 +1037,7 @@ function updateLobbyPlayerList(game) {
     });
 }
 
-function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole, isResettedToLobby) {
+function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole, notReturnedToLobby) {
     //console.log("createListObject:", name, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole);
 
     const item = document.createElement('div');
@@ -979,7 +1045,7 @@ function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connect
     if(isCreator) {
         item.classList.add('creator');
     }
-    if(isResettedToLobby) {
+    if(notReturnedToLobby) {
         item.classList.add('not-resetted');
     }
     if(isCurrentPlayer) {
@@ -994,43 +1060,35 @@ function createListObject(name, isCreator, isCurrentPlayer, isSpectator, connect
         statusIcon = '<span class="status-indicator connected" title="Verbunden">●</span>';
     }
 
-    // Kick-Button für Creator (nur wenn nicht selbst, nicht Creator und nicht gestartet)
-    let kickButton = '';
-    if (canKick) {
-        kickButton = `<button class="btn-kick" onclick="kickPlayer('${escapeHtml(name).replace(/'/g, "\\'")}')">Kick</button>`;
-    }
-    // Force-Role Button für Creator bei anderen Spielern (nur in Lobby)
-    let forceRoleButton = '';
-    if (!isCurrentPlayer && canForceRole) {
-        if (isSpectator) {
-            forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(name).replace(/'/g, "\\'")}')\" title="Zu Spieler verschieben">🎮</button>`;
-        } else {
-            forceRoleButton = `<button class="btn-force-role" onclick="forceRole('${escapeHtml(name).replace(/'/g, "\\'")}')\" title="Zu Zuschauer verschieben">👁️</button>`;
-        }
-        
-    }
-
-    // Toggle zu Spieler für eigenen Spectator (nicht während Spiel läuft)
-    let toggleButton = '';
-    if (isCurrentPlayer) {
-        if (isSpectator) {
-            toggleButton = `<button class="btn-toggle-role" onclick="toggleRole()" title="Zu Spieler wechseln">🎮</button>`;
-        } else {
-            toggleButton = `<button class="btn-toggle-role" onclick="toggleRole()" title="Zu Zuschauer wechseln">👁️</button>`;
-        }
-    } 
-
-        
     item.innerHTML = `
         <span>
-        ${isResettedToLobby ? '<span class="not-resetted-indicator" title="Dieser Spieler hat das Zurücksetzen in die Lobby noch nicht bestätigt.">⚠️</span>' : ''}
+        ${notReturnedToLobby ? '<span class="not-resetted-indicator" title="Dieser Spieler hat das Zurücksetzen in die Lobby noch nicht bestätigt.">⚠️</span>' : ''}
         ${statusIcon}${isCreator? '<span class="crown">👑</span>' : ''}${isCurrentPlayer ? '(Du)' : ''} ${escapeHtml(name)}</span>
-        <span class="player-actions">
-            ${toggleButton}
-            ${forceRoleButton}
-            ${kickButton}
-        </span>
+        <span class="player-actions"></span>
     `;
+
+    const actions = item.querySelector('.player-actions');
+    function addActionButton(className, label, title, onClick) {
+        const btn = document.createElement('button');
+        btn.className = className;
+        btn.textContent = label;
+        if (title) btn.title = title;
+        btn.addEventListener('click', onClick);
+        actions.appendChild(btn);
+    }
+
+    // Eigene Rolle wechseln (nicht während Spiel läuft)
+    if (isCurrentPlayer) {
+        addActionButton('btn-toggle-role', isSpectator ? '🎮' : '👁️', isSpectator ? 'Zu Spieler wechseln' : 'Zu Zuschauer wechseln', toggleRole);
+    }
+    // Force-Role Button für Creator bei anderen Spielern (nur in Lobby)
+    if (!isCurrentPlayer && canForceRole) {
+        addActionButton('btn-force-role', isSpectator ? '🎮' : '👁️', isSpectator ? 'Zu Spieler verschieben' : 'Zu Zuschauer verschieben', () => forceRole(name));
+    }
+    // Kick-Button für Creator (nur wenn nicht selbst)
+    if (canKick) {
+        addActionButton('btn-kick', 'Kick', null, () => kickPlayer(name));
+    }
 
     // Wende Spielerfarbe an
     applyPlayerColor(item, name);
@@ -1054,7 +1112,7 @@ function displayRoundHistory(history) {
     let lowestReactionPoints = 0;
 
     history.forEach((round) => {
-        reaction_points = round.reaction_points || 0;
+        let reaction_points = round.reaction_points || 0;
         if(reaction_points > highestReactionPoints) {
             highestReactionPoints = reaction_points;
         }
@@ -1072,7 +1130,7 @@ function displayRoundHistory(history) {
         let filledQuestion = round.black_card.card_text;
 
         for(let i=0; i<round.winning_cards.length; i++) {
-            filledQuestion = filledQuestion.replace('_____', `<span class="filled-answer">${round.winning_cards[i]}</span>`);
+            filledQuestion = filledQuestion.replace('_____', `<span class="filled-answer">${escapeHtml(round.winning_cards[i])}</span>`);
         }
 
         const czarColors = generatePlayerColor(round.czar || '[AUTOMATIC]');
@@ -1130,7 +1188,7 @@ copyLinkBtn.addEventListener('click', () => {
 
 // Kick Player Function
 async function kickPlayer(username) {
-    if (await customConfirm(`${username} wird aus dem Spiel entfernt und kann nicht mehr zurückkehren.`, `Spieler ${username} entfernen?`)) {
+    if (await customConfirm(`${username} wird aus dem Spiel entfernt.`, `Spieler ${username} entfernen?`)) {
         socket.emit('kick_player', { username: username });
     }
 }
@@ -1150,7 +1208,9 @@ socket.on('role_changed', (data) => {
     updateGameRoom(data.game);
     
     // Notification
-    if (data.username === window.currentUsername) {
+    if (data.forced_by && data.forced_by === window.currentUsername) {
+        showNotification(`${data.username} ist jetzt ${data.role}`, 'success');
+    } else if (data.username === window.currentUsername) {
         if (data.forced_by) {
             showNotification(`Deine Rolle wurde von ${data.forced_by} zu ${data.role} geändert`, 'warning');
         } else {
@@ -1178,6 +1238,20 @@ socket.on('player_submitted', (data) => {
     update_czarDeliveryInfo(data.submitted_count, data.total_players);
     showNotification(`${data.username} hat abgegeben`, 'info');
 });
+
+function update_czarWaitingTitle(game) {
+    if (game.czar == window.currentUsername) {
+        czarWaitingTitle.textContent = 'Du bist der Card Czar!';
+        czarWaitingMessage.textContent = 'Warte, während die anderen Spieler ihre Karten auswählen...';
+    } else if ((game.pending_players || []).includes(window.currentUsername)) {
+        czarWaitingTitle.textContent = 'Gleich geht\'s los!';
+        czarWaitingMessage.textContent = 'Du steigst in der nächsten Runde ein.';
+    } else {
+        czarWaitingTitle.textContent = 'Du schaust zu';
+        czarWaitingMessage.textContent = 'Die Spieler wählen gerade ihre Karten aus...';
+    }
+    czarWaitingMessage.classList.remove('hidden');
+}
 
 function update_czarDeliveryInfo(submitted_count, total_players) {
     submissionStatus.textContent = `${submitted_count} von ${total_players} Spielern haben abgegeben`;

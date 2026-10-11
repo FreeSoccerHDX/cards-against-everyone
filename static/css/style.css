@@ -1204,3 +1204,61 @@ button {
         font-size: 14px;
     }
 }
+
+/* Verbindung verloren */
+.connection-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    padding: 10px 16px;
+    background: #e67e22;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.connection-banner.hidden {
+    display: none;
+}
+
+/* Sitzung in anderem Tab geöffnet */
+.session-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.75);
+}
+
+.session-overlay.hidden {
+    display: none;
+}
+
+.session-overlay-box {
+    max-width: 420px;
+    padding: 30px;
+    border-radius: 12px;
+    background: #fff;
+    color: #222;
+    text-align: center;
+}
+
+.session-overlay-box h2 {
+    color: #222;
+}
+
+.session-overlay-box p {
+    margin: 12px 0 20px;
+}
+
+/* Spieler, die in der nächsten Runde einsteigen */
+.score-item.pending-player {
+    opacity: 0.6;
+    font-style: italic;
+}
