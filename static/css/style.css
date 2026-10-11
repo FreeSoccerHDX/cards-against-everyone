@@ -1262,3 +1262,41 @@ button {
     opacity: 0.6;
     font-style: italic;
 }
+
+/* Wegwerfrunde: Hand nach dem Abwerfen, neue Karten markiert */
+.discard-card.readonly {
+    cursor: default;
+}
+
+.discard-card.readonly:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #e0e0e0;
+}
+
+.discard-card.new-card,
+.discard-card.new-card:hover {
+    border-color: #2ecc71;
+    box-shadow: 0 0 12px rgba(46, 204, 113, 0.6);
+}
+
+.new-card-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #2ecc71;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Eigene Antwort in der Czar-Wahl: keine Reaktionen */
+.own-card-label {
+    margin-top: 10px;
+    text-align: right;
+    font-size: 13px;
+    font-style: italic;
+    opacity: 0.7;
+}

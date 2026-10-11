@@ -194,3 +194,24 @@ def test_force_role_reports_failure():
     owner.get_received()
     owner.emit("force_role", {"username": "ben"})
     assert events(owner, "error")
+
+
+def test_owner_adds_bot_and_bot_names_reserved():
+    game_id, clients = create_game_with("anna", "ben")
+    owner, _ = clients["anna"]
+    owner.emit("add_bot")
+    assert len(server.games[game_id].bots) == 1
+    clients["ben"][0].emit("add_bot")
+    assert events(clients["ben"][0], "error")
+
+    other = connect()
+    other.emit("set_username", {"username": "🤖 Bot 9"})
+    assert events(other, "username_error")
+
+
+def test_game_deleted_when_only_bots_left():
+    game_id, clients = create_game_with("anna")
+    owner, _ = clients["anna"]
+    owner.emit("add_bot")
+    owner.emit("leave_game")
+    assert game_id not in server.games

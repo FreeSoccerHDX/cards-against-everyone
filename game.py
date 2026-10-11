@@ -8,6 +8,13 @@ OWNER_AFK_TRANSFER_SECONDS = 5 * 60
 # Spiel wird gelöscht, wenn so lange niemand verbunden ist
 EMPTY_GAME_TIMEOUT_SECONDS = 15 * 60
 
+# Bots: Präfix für Namen (Benutzernamen dürfen nicht so beginnen)
+BOT_NAME_PREFIX = "🤖 Bot"
+# So lange "überlegt" ein Bot als Czar, bevor er zufällig wählt
+BOT_CZAR_SECONDS = 8
+# Wegwerfrunde: so lange sind die neuen Karten noch sichtbar, wenn alle abgeworfen haben
+DISCARD_SHOW_NEW_CARDS_SECONDS = 5
+
 # Erlaubte Einstellungen: key -> (typ, min, max) | bei str gilt min/max für die Länge
 SETTINGS_SCHEMA = {
     "gameName": (str, 1, 30),
@@ -100,6 +107,8 @@ class Game:
         self.disconnected_at = {}           # playerName: timestamp seit wann die Verbindung weg ist
         self.no_connected_since = None      # timestamp seit wann niemand mehr verbunden ist
         self.pending_notices = {}           # playerName: [nachrichten], die beim Reconnect zugestellt werden
+        self.bots = []                      # Namen der Bots (sind auch in active_players)
+        self.new_cards = {}                 # playerName: Anzahl neu gezogener Karten in der Wegwerfrunde (am Ende der Hand)
 
         # Game variables
         self.history = []          # list of past rounds
@@ -157,6 +166,12 @@ class Game:
     def members(self):
         return self.active_players + self.pending_players + self.spectators
 
+    def human_members(self):
+        return [m for m in self.members() if m not in self.bots]
+
+    def is_bot(self, playerName):
+        return playerName in self.bots
+
     def is_member(self, playerName):
         return playerName in self.members()
 
@@ -186,7 +201,7 @@ class Game:
         self.pending_players = []
 
     def _pick_new_owner(self, exclude=None):
-        candidates = [m for m in self.members() if m != exclude]
+        candidates = [m for m in self.human_members() if m != exclude]
         for member in candidates:
             if self.is_status_connected(member):
                 return member
@@ -266,6 +281,8 @@ class Game:
             "history": self.history if self.state == 'game_ended' else [],
             "current_round": self.current_round,
             "currentPlayerCards": self.playerCards.get(current_playerName, []) if current_playerName else [],
+            "currentPlayerNewCards": self.new_cards.get(current_playerName, 0) if self.state == 'special_discard_round' else 0,
+            "bots": self.bots,
             "current_black_card": self.current_black_card,
             "player_mapping": self.player_mapping,
             "winning_white_cards": self.winning_white_cards,
@@ -341,6 +358,9 @@ class Game:
                 self.current_reactions.pop(playerName, None)
             self.active_players.remove(playerName)
 
+        if playerName in self.bots:
+            self.bots.remove(playerName)
+        self.new_cards.pop(playerName, None)
         self.player_status.pop(playerName, None)
         self.disconnected_at.pop(playerName, None)
         self.pending_notices.pop(playerName, None)
@@ -362,9 +382,32 @@ class Game:
 
         return True
 
+    def add_bot(self):
+        if self.is_game_started():
+            return False, "Bots können nur in der Lobby hinzugefügt werden"
+        if len(self.active_players) + len(self.pending_players) >= self.settings["maxPlayers"]:
+            return False, "Maximale Spieleranzahl erreicht"
+
+        number = 1
+        while f"{BOT_NAME_PREFIX} {number}" in self.members():
+            number += 1
+        name = f"{BOT_NAME_PREFIX} {number}"
+
+        self.bots.append(name)
+        self.active_players.append(name)
+        # Bots sind immer verbunden
+        self.player_status[name] = 'connected'
+        return True, name
+
+    def _bots_play_cards(self):
+        """Bots geben sofort zufällige Karten ab"""
+        self._autosubmit([b for b in self.bots if b != self.czar and b in self.active_players])
+
     def toggle_role(self, playerName):
         if self.is_game_started():
             return False, "Spiel bereits gestartet"
+        if self.is_bot(playerName):
+            return False, "Bots können nicht zuschauen"
 
         if playerName in self.spectators:
             # switch to player
@@ -419,7 +462,7 @@ class Game:
 
     def housekeeping(self, now):
         """Wird jede Sekunde aufgerufen. Gibt True zurück, wenn das Spiel gelöscht werden soll."""
-        members = self.members()
+        members = self.human_members()
         if not members:
             return True
 
@@ -493,6 +536,8 @@ class Game:
         self.current_black_card = self.black_deck.draw()
         self.fill_player_hands()
         self._set_timer(self.settings["timeToChooseWhiteCards"])
+        self._bots_play_cards()
+        self._advance_if_all_submitted()
 
         return True, "Spiel gestartet"
 
@@ -643,6 +688,9 @@ class Game:
         # Ohne Czar (hat das Spiel verlassen) wird direkt zufällig gewählt
         if self.czar is None:
             self._choose_random_winner()
+        elif self.is_bot(self.czar):
+            # Bot-Czar wählt nach kurzer Zeit zufällig (Timer-Ablauf)
+            self._set_timer(min(BOT_CZAR_SECONDS, self.settings["timeToChooseWinner"]))
 
     # ---------- Gewinner ----------
 
@@ -742,8 +790,12 @@ class Game:
     def _enter_discard_round(self):
         self.state = 'special_discard_round'
         self.submitted_white_cards = {}
+        self.new_cards = {}
         self.fill_player_hands()
         self._set_timer(self.settings["discardTime"])
+        # Bots werfen nichts ab
+        for bot in self.bots:
+            self.submitted_white_cards[bot] = []
 
     def submit_discard_cards(self, playerName, white_cards_indicies):
         if self.paused:
@@ -767,6 +819,10 @@ class Game:
         self.white_deck.discard(cards)
         self.submitted_white_cards[playerName] = cards
 
+        # Direkt neue Karten ziehen, damit der Spieler sie noch in der Wegwerfrunde sieht
+        self._draw_hand(playerName, len(self.playerCards.get(playerName, [])) + len(cards))
+        self.new_cards[playerName] = len(cards)
+
         self._advance_if_all_discarded()
         return True, "Karten abgeworfen"
 
@@ -776,8 +832,11 @@ class Game:
         connected = [p for p in self.active_players if self.is_status_connected(p)]
         if not connected or any(p not in self.submitted_white_cards for p in connected):
             return False
-        self.next_round()
-        return True
+        # Kurz warten, damit alle ihre neuen Karten noch sehen
+        if self.currentTimerSeconds > DISCARD_SHOW_NEW_CARDS_SECONDS:
+            self._set_timer(DISCARD_SHOW_NEW_CARDS_SECONDS)
+            return True
+        return False
 
     # ---------- Rundenwechsel / Ende ----------
 
@@ -816,9 +875,12 @@ class Game:
         self.current_reactions = {}
         self._next_czar()
         self.current_black_card = self.black_deck.draw()
+        self.new_cards = {}
         self.fill_player_hands()
         self.state = 'choosing_cards'
         self._set_timer(self.settings["timeToChooseWhiteCards"])
+        self._bots_play_cards()
+        self._advance_if_all_submitted()
         self.send_socket_game_update_for_all()
         return True, "Neue Runde gestartet"
 
@@ -857,7 +919,7 @@ class Game:
         """Lobby zurücksetzen, sobald alle verbundenen Mitglieder zurückgekehrt sind"""
         if self.state != 'game_ended' or not self.returned_to_lobby:
             return False
-        connected = [m for m in self.members() if self.is_status_connected(m)]
+        connected = [m for m in self.human_members() if self.is_status_connected(m)]
         if any(m not in self.returned_to_lobby for m in connected):
             return False
         self.reset_to_lobby()

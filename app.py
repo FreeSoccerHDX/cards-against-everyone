@@ -5,7 +5,7 @@ import re
 import secrets
 import time
 import traceback
-from game import Game
+from game import Game, BOT_NAME_PREFIX
 
 DEBUG = os.environ.get('DEBUG', '0') == '1'
 # Benutzer ohne Spiel werden nach so vielen Sekunden ohne Verbindung entfernt
@@ -123,8 +123,8 @@ def leave_current_game(username):
     game.remove_player(username)
     leave_room(game.game_id, sid=users[username]['sid'], namespace='/')
 
-    # Spiel löschen wenn leer
-    if not game.members():
+    # Spiel löschen wenn keine Menschen mehr drin sind
+    if not game.human_members():
         games.pop(game.game_id, None)
     else:
         # Informiere andere Spieler
@@ -262,6 +262,10 @@ def handle_set_username(data):
 
     if len(username) > 30:
         emit('username_error', {'message': 'Der Name darf maximal 30 Zeichen lang sein (aktuell: ' + str(len(username)) + ')'})
+        return
+
+    if username.startswith(BOT_NAME_PREFIX.split(' ')[0]):
+        emit('username_error', {'message': 'Dieser Name ist für Bots reserviert'})
         return
 
     current = users_by_sid.get(request.sid)
@@ -528,6 +532,29 @@ def handle_kick_player(data):
 
     # Informiere alle anderen
     game.send_socket_game_update_for_all(channel='player_left', extra={'username': kicked_user})
+    broadcastPublicGames()
+
+
+@socketio.on('add_bot')
+def handle_add_bot():
+    success, username, game = get_current_data(need_game=True)
+    if not success:
+        return
+
+    # Nur Owner kann Bots hinzufügen
+    if game.owner != username:
+        emit('error', {'message': 'Nur der Ersteller kann Bots hinzufügen'})
+        return
+
+    success, result = game.add_bot()
+    if not success:
+        emit('error', {'message': result})
+        return
+
+    game.send_socket_game_update_for_all(channel='player_joined', extra={
+        'username': result,
+        'is_spectator': False,
+    })
     broadcastPublicGames()
 
 

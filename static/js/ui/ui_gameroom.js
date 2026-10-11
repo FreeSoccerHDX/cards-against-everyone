@@ -31,6 +31,10 @@ const playersList = document.getElementById('players-list');
 const spectatorsSection = document.getElementById('spectators-section');
 const spectatorsList = document.getElementById('spectators-list');
 const joinLinkInput = document.getElementById('join-link');
+const addBotBtn = document.getElementById('add-bot-btn');
+addBotBtn.addEventListener('click', () => {
+    socket.emit('add_bot');
+});
 const copyLinkBtn = document.getElementById('copy-link-btn');
 
 
@@ -556,12 +560,30 @@ function update_discardPlayerHands(game) {
 
     playerHandDiscard.innerHTML = '';
 
+    const alreadyDiscarded = window.currentUsername in game.submitted_white_cards;
+    // Neu gezogene Karten liegen am Ende der Hand
+    const newCardsCount = game.currentPlayerNewCards || 0;
+    const firstNewIndex = currentHand.length - newCardsCount;
+
     currentHand.forEach((card, index) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'discard-card';
         cardEl.textContent = card;
         cardEl.dataset.index = index;
-        
+
+        if (alreadyDiscarded) {
+            cardEl.classList.add('readonly');
+            if (index >= firstNewIndex) {
+                cardEl.classList.add('new-card');
+                const badge = document.createElement('div');
+                badge.className = 'new-card-badge';
+                badge.textContent = 'NEU';
+                cardEl.appendChild(badge);
+            }
+            playerHandDiscard.appendChild(cardEl);
+            return;
+        }
+
         if (selectedDiscardCardsIDs.includes(index)) {
             cardEl.classList.add('selected');
         }
@@ -571,18 +593,19 @@ function update_discardPlayerHands(game) {
     });
 
     const maxDiscards = game.settings["discardMaxCards"] || 0;
-    const alreadyDiscarded = window.currentUsername in game.submitted_white_cards;
     const playing = isPlayingThisRound(game);
 
     if (!playing) {
         cardsNeededDiscard.textContent = game.spectators.includes(window.currentUsername) ? "Du schaust zu." : "Du steigst in der nächsten Runde ein.";
     } else if (alreadyDiscarded) {
-        cardsNeededDiscard.textContent = "Warte auf die anderen Spieler...";
+        cardsNeededDiscard.textContent = newCardsCount > 0 ?
+            `Deine ${newCardsCount} neue(n) Karte(n) sind markiert. Warte auf die anderen Spieler...` :
+            "Warte auf die anderen Spieler...";
     } else {
         cardsNeededDiscard.textContent = `Wähle bis zu ${maxDiscards} Karte(n) zum Abwerfen aus.`;
     }
 
-    playerHandDiscard.classList.toggle('hidden', alreadyDiscarded || !playing);
+    playerHandDiscard.classList.toggle('hidden', !playing);
     submitDiscardBtn.classList.toggle('hidden', alreadyDiscarded || !playing);
     update_discardButton();
 }
@@ -761,6 +784,11 @@ function update_czarSelection(game) {
         
         if (isCzar) {
             optionEl.addEventListener('click', () => selectWinner(i, optionEl));
+        } else if (playerName === window.currentUsername) {
+            let ownCardLabel = document.createElement('div');
+            ownCardLabel.className = 'own-card-label';
+            ownCardLabel.textContent = 'Deine Karte';
+            optionEl.appendChild(ownCardLabel);
         } else if (isPlayingThisRound(game)) {
             // add buttons for reactions (lach-Emoji, Daumen hoch, Daumen runter, schädel-emoji -> gibt 2,1,-1,-2 punkte) 
             let reactionsDiv = document.createElement('div');
@@ -1014,6 +1042,8 @@ function updateLobbyPlayerList(game) {
     spectatorsList.innerHTML = '';
 
     spectatorsSection.classList.toggle('hidden', spectators.length === 0);
+    addBotBtn.classList.toggle('hidden', game.owner != window.currentUsername);
+    const bots = game.bots || [];
 
     
 
@@ -1024,7 +1054,7 @@ function updateLobbyPlayerList(game) {
         let isSpectator = spectators.includes(player);
         let connection_status = player_status[player] || 'connected';
         let canKick = (game.owner == window.currentUsername) && (player != window.currentUsername);
-        let canForceRole = (game.owner == window.currentUsername) && (player != window.currentUsername);
+        let canForceRole = (game.owner == window.currentUsername) && (player != window.currentUsername) && !bots.includes(player);
         let notReturnedToLobby = !isSpectator && (game.returned_to_lobby.length > 0 && !game.returned_to_lobby.includes(player));
 
         let listObject = createListObject(player, isCreator, isCurrentPlayer, isSpectator, connection_status, canKick, canForceRole, notReturnedToLobby);
@@ -1188,6 +1218,11 @@ copyLinkBtn.addEventListener('click', () => {
 
 // Kick Player Function
 async function kickPlayer(username) {
+    const isBot = window.currentGameData && (window.currentGameData.bots || []).includes(username);
+    if (isBot) {
+        socket.emit('kick_player', { username: username });
+        return;
+    }
     if (await customConfirm(`${username} wird aus dem Spiel entfernt.`, `Spieler ${username} entfernen?`)) {
         socket.emit('kick_player', { username: username });
     }

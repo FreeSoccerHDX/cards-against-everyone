@@ -271,8 +271,12 @@ def test_discard_round_allows_up_to_max_and_rejects_duplicates():
     assert not game.submit_discard_cards("anna", [0, 1, 2, 3])[0]
     assert game.submit_discard_cards("anna", [])[0]
     assert game.submit_discard_cards("ben", [0, 1])[0]
-    assert len(game.playerCards["ben"]) == 5
+    assert len(game.playerCards["ben"]) == 7
     game.mark_player_connection_status("carl", "disconnecting", now=0)
+    assert game.state == "special_discard_round"
+    assert game.currentTimerSeconds == 5
+    game.currentTimerSeconds = 1
+    game.timer_tick()
     assert game.state == "choosing_cards"
 
 
@@ -327,3 +331,84 @@ def test_full_game_runs_to_end():
         game.timer_tick()
     assert game.state == "game_ended"
     assert max(game.scores.values()) == 2
+
+
+# ---------- Bots ----------
+
+def test_bots_fill_up_game_and_play_automatically():
+    game, _, _ = make_game(("anna", "ben"))
+    ok, bot = game.add_bot()
+    assert ok and game.is_bot(bot)
+    assert game.start_game()[0]
+    if game.czar != bot:
+        assert bot in game.submitted_white_cards
+    submit_all(game)
+    assert game.state == "choosing_winner"
+
+
+def test_bot_czar_picks_winner_after_short_time():
+    game, _, _ = make_game(("anna", "ben"))
+    _, bot = game.add_bot()
+    game.start_game()
+    game.czar = bot
+    game.czarIndex = game.active_players.index(bot)
+    game.submitted_white_cards = {}
+    submit_all(game)
+    assert game.currentTimerSeconds <= 8
+    game.currentTimerSeconds = 1
+    game.timer_tick()
+    assert game.state == "countdown_next_round"
+    assert sum(game.scores.values()) == 1
+
+
+def test_bots_cannot_be_owner_or_spectator_and_dont_keep_game_alive():
+    game, _, _ = make_game(("anna", "ben"))
+    _, bot = game.add_bot()
+    assert not game.toggle_role(bot)[0]
+    game.remove_player("ben")
+    game.remove_player("anna")
+    assert game.owner is None
+    assert game.human_members() == []
+    assert game.housekeeping(0)
+
+
+def test_bot_names_are_unique_and_respect_max_players():
+    game, _, _ = make_game(("anna",))
+    game.settings["maxPlayers"] = 3
+    names = [game.add_bot()[1] for _ in range(2)]
+    assert len(set(names)) == 2
+    assert not game.add_bot()[0]
+
+
+def test_bots_ignored_for_return_to_lobby():
+    game, _, _ = make_game(("anna", "ben"))
+    game.add_bot()
+    game.start_game()
+    game.end_game()
+    game.user_return_to_lobby("anna")
+    game.user_return_to_lobby("ben")
+    assert game.state == "lobby"
+
+
+# ---------- Discard round new cards ----------
+
+def test_discard_draws_new_cards_immediately_and_marks_them():
+    game, _, _ = make_game(start=True)
+    game.state = "countdown_next_round"
+    game._enter_discard_round()
+    old_hand = list(game.playerCards["anna"])
+    assert game.submit_discard_cards("anna", [0, 1])[0]
+    hand = game.playerCards["anna"]
+    assert len(hand) == 7
+    assert hand[:5] == old_hand[2:]
+    data = game.get_socket_game_data("anna")
+    assert data["currentPlayerNewCards"] == 2
+    assert game.get_socket_game_data("ben")["currentPlayerNewCards"] == 0
+
+    game.submit_discard_cards("ben", [])
+    game.submit_discard_cards("carl", [])
+    assert game.state == "special_discard_round"
+    game.currentTimerSeconds = 1
+    game.timer_tick()
+    assert game.state == "choosing_cards"
+    assert game.get_socket_game_data("anna")["currentPlayerNewCards"] == 0

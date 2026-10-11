@@ -64,6 +64,12 @@ function autoSaveSettings() {
 // Event-Listener für alle Settings-Inputs
 function initializeSettingsListeners() {
     settingsName.addEventListener('input', autoSaveSettings);
+    // Leerer Name wird nicht gespeichert -> beim Verlassen letzten gültigen Namen wiederherstellen
+    settingsName.addEventListener('blur', () => {
+        if (!settingsName.value.trim() && window.currentGameData) {
+            settingsName.value = window.currentGameData.settings.gameName;
+        }
+    });
     settingsPublic.addEventListener('change', autoSaveSettings);
     settingsPassword.addEventListener('input', autoSaveSettings);
     settingsMaxCards.addEventListener('input', autoSaveSettings);
