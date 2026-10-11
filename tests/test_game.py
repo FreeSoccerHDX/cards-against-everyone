@@ -274,7 +274,7 @@ def test_discard_round_allows_up_to_max_and_rejects_duplicates():
     assert len(game.playerCards["ben"]) == 7
     game.mark_player_connection_status("carl", "disconnecting", now=0)
     assert game.state == "special_discard_round"
-    assert game.currentTimerSeconds == 5
+    assert game.currentTimerSeconds == 3
     game.currentTimerSeconds = 1
     game.timer_tick()
     assert game.state == "choosing_cards"
@@ -411,4 +411,44 @@ def test_discard_draws_new_cards_immediately_and_marks_them():
     game.currentTimerSeconds = 1
     game.timer_tick()
     assert game.state == "choosing_cards"
-    assert game.get_socket_game_data("anna")["currentPlayerNewCards"] == 0
+    # Markierung bleibt bis zum Ende der folgenden Runde
+    assert game.get_socket_game_data("anna")["currentPlayerNewCards"] == 2
+
+    # Nach der folgenden Runde zählen nur noch die dann gezogenen Karten
+    anna_played = game.czar != "anna"
+    blanks = game.current_black_card["num_blanks"]
+    submit_all(game)
+    game.choose_winner(game.player_mapping[0], game.czar)
+    game.finalize_winner_choice()
+    game.next_round()
+    assert game.get_socket_game_data("anna")["currentPlayerNewCards"] == (blanks if anna_played else 0)
+
+
+def test_new_cards_marked_after_normal_round():
+    game, _, _ = make_game(start=True)
+    # Erste Runde: ganze Hand neu -> keine Markierung
+    assert all(game.get_socket_game_data(p)["currentPlayerNewCards"] == 0 for p in game.active_players)
+
+    game.current_black_card = {"card_text": "_____ _____", "num_blanks": 2}
+    submit_all(game)
+    submitters = non_czar(game)
+    czar = game.czar
+    game.choose_winner(game.player_mapping[0], game.czar)
+    game.finalize_winner_choice()
+    game.next_round()
+
+    for player in submitters:
+        hand = game.playerCards[player]
+        assert game.get_socket_game_data(player)["currentPlayerNewCards"] == 2
+        # neue Karten liegen am Ende der Hand
+        assert len(hand) == 7
+    assert game.get_socket_game_data(czar)["currentPlayerNewCards"] == 0
+
+
+def test_submitting_new_card_reduces_marked_count():
+    game, _, _ = make_game(start=True)
+    player = non_czar(game)[0]
+    game.new_cards[player] = 2  # Karten 5 und 6 sind neu
+    game.current_black_card = {"card_text": "_____", "num_blanks": 1}
+    game.submit_white_cards(player, [6])
+    assert game.new_cards[player] == 1

@@ -13,7 +13,7 @@ BOT_NAME_PREFIX = "🤖 Bot"
 # So lange "überlegt" ein Bot als Czar, bevor er zufällig wählt
 BOT_CZAR_SECONDS = 8
 # Wegwerfrunde: so lange sind die neuen Karten noch sichtbar, wenn alle abgeworfen haben
-DISCARD_SHOW_NEW_CARDS_SECONDS = 5
+DISCARD_SHOW_NEW_CARDS_SECONDS = 3
 
 # Erlaubte Einstellungen: key -> (typ, min, max) | bei str gilt min/max für die Länge
 SETTINGS_SCHEMA = {
@@ -108,7 +108,7 @@ class Game:
         self.no_connected_since = None      # timestamp seit wann niemand mehr verbunden ist
         self.pending_notices = {}           # playerName: [nachrichten], die beim Reconnect zugestellt werden
         self.bots = []                      # Namen der Bots (sind auch in active_players)
-        self.new_cards = {}                 # playerName: Anzahl neu gezogener Karten in der Wegwerfrunde (am Ende der Hand)
+        self.new_cards = {}                 # playerName: Anzahl in dieser Runde neu gezogener Karten (liegen am Ende der Hand)
 
         # Game variables
         self.history = []          # list of past rounds
@@ -221,15 +221,26 @@ class Game:
         hand = self.playerCards.setdefault(playerName, [])
         while len(hand) < size:
             hand.append(self.white_deck.draw())
+            self.new_cards[playerName] = self.new_cards.get(playerName, 0) + 1
         return hand
 
     def _take_cards(self, playerName, indices):
         """Entfernt die Karten an den gegebenen Indizes aus der Hand und gibt sie zurück"""
         hand = self.playerCards.get(playerName, [])
         cards = [hand[i] for i in indices]
+        # Entfernte neue Karten zählen nicht mehr als neu
+        first_new_index = len(hand) - self.new_cards.get(playerName, 0)
+        removed_new = sum(1 for i in indices if i >= first_new_index)
+        if removed_new:
+            self.new_cards[playerName] -= removed_new
         for i in sorted(indices, reverse=True):
             hand.pop(i)
         return cards
+
+    def _visible_new_cards(self, playerName):
+        """Anzahl der als NEU zu markierenden Karten. Ist die ganze Hand neu, wird nichts markiert."""
+        count = self.new_cards.get(playerName, 0)
+        return 0 if count >= len(self.playerCards.get(playerName, [])) else count
 
     # ########################################
     #       Settings
@@ -281,7 +292,7 @@ class Game:
             "history": self.history if self.state == 'game_ended' else [],
             "current_round": self.current_round,
             "currentPlayerCards": self.playerCards.get(current_playerName, []) if current_playerName else [],
-            "currentPlayerNewCards": self.new_cards.get(current_playerName, 0) if self.state == 'special_discard_round' else 0,
+            "currentPlayerNewCards": self._visible_new_cards(current_playerName) if current_playerName else 0,
             "bots": self.bots,
             "current_black_card": self.current_black_card,
             "player_mapping": self.player_mapping,
@@ -529,6 +540,7 @@ class Game:
         self.scores = {player: 0 for player in self.active_players}
         self.white_deck.reset()
         self.black_deck.reset()
+        self.new_cards = {}
 
         # Zufälliger Start-Czar: _next_czar geht einen Schritt weiter
         self.czarIndex = random.randrange(len(self.active_players)) - 1
@@ -821,7 +833,6 @@ class Game:
 
         # Direkt neue Karten ziehen, damit der Spieler sie noch in der Wegwerfrunde sieht
         self._draw_hand(playerName, len(self.playerCards.get(playerName, [])) + len(cards))
-        self.new_cards[playerName] = len(cards)
 
         self._advance_if_all_discarded()
         return True, "Karten abgeworfen"
@@ -843,6 +854,8 @@ class Game:
     def next_round(self):
         if self.state != 'countdown_next_round' and self.state != 'special_discard_round':
             return False, "Falsche Spielphase"
+        # Neue Karten aus der Wegwerfrunde bleiben bis zum Ende der nächsten Runde markiert
+        coming_from_discard_round = self.state == 'special_discard_round'
 
         # check if max rounds reached
         if (self.current_round + 1) >= self.settings["maxRounds"]:
@@ -875,7 +888,8 @@ class Game:
         self.current_reactions = {}
         self._next_czar()
         self.current_black_card = self.black_deck.draw()
-        self.new_cards = {}
+        if not coming_from_discard_round:
+            self.new_cards = {}
         self.fill_player_hands()
         self.state = 'choosing_cards'
         self._set_timer(self.settings["timeToChooseWhiteCards"])
@@ -896,6 +910,7 @@ class Game:
         self.current_czar_selected_player = None
         self.choosing_playerName = None
         self.playerCards = {}
+        self.new_cards = {}
         self.current_black_card = {}
         self.winning_white_cards = {}
         self.submitted_white_cards = {}
@@ -931,6 +946,7 @@ class Game:
         self.state = 'lobby'
         self.current_round = 0
         self.playerCards = {}
+        self.new_cards = {}
         self.current_black_card = {}
         self.winning_white_cards = {}
         self.submitted_white_cards = {}

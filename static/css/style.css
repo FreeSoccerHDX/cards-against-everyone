@@ -1263,7 +1263,7 @@ button {
     font-style: italic;
 }
 
-/* Wegwerfrunde: Hand nach dem Abwerfen, neue Karten markiert */
+/* Wegwerfrunde: Hand nach dem Abwerfen | Neu gezogene Karten markiert */
 .discard-card.readonly {
     cursor: default;
 }
@@ -1275,7 +1275,9 @@ button {
 }
 
 .discard-card.new-card,
-.discard-card.new-card:hover {
+.discard-card.new-card:hover,
+.answer-card.new-card,
+.answer-card.new-card:not(.selected):hover {
     border-color: #2ecc71;
     box-shadow: 0 0 12px rgba(46, 204, 113, 0.6);
 }
@@ -1283,7 +1285,7 @@ button {
 .new-card-badge {
     position: absolute;
     top: 8px;
-    right: 8px;
+    left: 8px;
     padding: 2px 8px;
     border-radius: 10px;
     background: #2ecc71;
@@ -1299,4 +1301,16 @@ button {
     font-size: 13px;
     font-style: italic;
     opacity: 0.7;
+}
+
+.answer-card.new-card.selected,
+.discard-card.new-card.selected {
+    border-color: #667eea;
+    box-shadow: 0 0 12px rgba(102, 126, 234, 0.6);
+}
+
+/* Platz für das NEU-Badge, damit es keinen Text verdeckt */
+.answer-card.new-card,
+.discard-card.new-card {
+    padding-top: 28px;
 }

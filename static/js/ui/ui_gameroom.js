@@ -349,6 +349,18 @@ function isPlayingThisRound(game) {
     return game.active_players.includes(window.currentUsername);
 }
 
+// Markiert in dieser Runde neu gezogene Karten (liegen am Ende der Hand)
+function markIfNewCard(cardEl, index, game) {
+    const newCardsCount = game.currentPlayerNewCards || 0;
+    if (newCardsCount > 0 && index >= currentHand.length - newCardsCount) {
+        cardEl.classList.add('new-card');
+        const badge = document.createElement('div');
+        badge.className = 'new-card-badge';
+        badge.textContent = 'NEU';
+        cardEl.appendChild(badge);
+    }
+}
+
 function toggleCardSelection(index, cardEl) {
     // Blockiere während Pause
     //console.log("toggleCardSelection", index);
@@ -561,9 +573,7 @@ function update_discardPlayerHands(game) {
     playerHandDiscard.innerHTML = '';
 
     const alreadyDiscarded = window.currentUsername in game.submitted_white_cards;
-    // Neu gezogene Karten liegen am Ende der Hand
     const newCardsCount = game.currentPlayerNewCards || 0;
-    const firstNewIndex = currentHand.length - newCardsCount;
 
     currentHand.forEach((card, index) => {
         const cardEl = document.createElement('div');
@@ -571,15 +581,10 @@ function update_discardPlayerHands(game) {
         cardEl.textContent = card;
         cardEl.dataset.index = index;
 
+        markIfNewCard(cardEl, index, game);
+
         if (alreadyDiscarded) {
             cardEl.classList.add('readonly');
-            if (index >= firstNewIndex) {
-                cardEl.classList.add('new-card');
-                const badge = document.createElement('div');
-                badge.className = 'new-card-badge';
-                badge.textContent = 'NEU';
-                cardEl.appendChild(badge);
-            }
             playerHandDiscard.appendChild(cardEl);
             return;
         }
@@ -947,6 +952,8 @@ function update_gamehands(game) {
         cardEl.textContent = card;
         cardEl.dataset.index = index;
         
+        markIfNewCard(cardEl, index, game);
+
         const selectionPosition = selectedCards.indexOf(index);
         if (selectionPosition > -1) {
             cardEl.classList.add('selected');
